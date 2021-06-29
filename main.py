@@ -1,20 +1,20 @@
 import os
 
-from dospacy import trainSpacyModel
-from dospacy import testSpacyModel
+from dospacy_transformers import trainSpacyModel
+from dospacy_transformers import testSpacyModel
 from dobilstm import trainBiLSTMModel
 from datetime import datetime
 
 
 def train_model(model, modelFile):
     LABEL = ['LOCATION', 'CONTENT', 'TRIGGER', 'MODAL', 'ACTION']
-    LABEL = ['LOCATION', 'TRIGGER', 'MODAL', 'ACTION']
+    #LABEL = ['LOCATION', 'TRIGGER', 'MODAL', 'ACTION']
 
     ROOT_DIR = os.path.dirname(os.path.abspath('data.json'))
-    path_csv = os.path.join(ROOT_DIR, 'selena2.csv')
+    path_csv = os.path.join(ROOT_DIR, 'data.csv')
 
     dropout = 1e-4
-    nIter   = 100
+    nIter   = 10
 
     now = datetime.now()
     current_time = now.strftime("%H:%M:%S")
@@ -24,7 +24,7 @@ def train_model(model, modelFile):
         nlp = trainSpacyModel(path_csv, LABEL, dropout, nIter)
     else:
         if model == str(2):
-            nlp = doBiLSTMModel(path_csv, LABEL, dropout, nIter)
+            nlp = trainBiLSTMModel(path_csv, LABEL, dropout, nIter)
         else:
             exit("Wrong model selection")
 
@@ -43,7 +43,7 @@ def test_model(model_type):
 
 
 if __name__ == '__main__':
-    model_type = input("Model (1. spaCy; 2. Bi-LSTM): ")
+    model_type = input("Model (1. spaCy; 2. Bi-LSTM; 3. BERT): ")
     modelFile = input("Enter the Model name to save: ")
-    train_model(model_type, modelFile)
-    #test_model(model_type)
+    #train_model(model_type, modelFile)
+    test_model(model_type)
