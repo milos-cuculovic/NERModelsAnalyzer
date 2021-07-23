@@ -7,7 +7,7 @@ import logging
 import os
 import random
 import sys
-
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -480,15 +480,16 @@ def main():
         train_dataloader = DataLoader(train_data, sampler=train_sampler, batch_size=args.train_batch_size)
 
         model.train()
+        train_losses = []
         for _ in trange(int(args.num_train_epochs), desc="Epoch"):
             tr_loss = 0
             nb_tr_examples, nb_tr_steps = 0, 0
             for step, batch in enumerate(tqdm(train_dataloader, desc="Iteration")):
                 batch = tuple(t.to(device) for t in batch)
-                input_ids, input_mask, segment_ids, label_ids, valid_ids,l_mask = batch
-                loss = model(input_ids, segment_ids, input_mask, label_ids,valid_ids,l_mask)
+                input_ids, input_mask, segment_ids, label_ids, valid_ids, l_mask = batch
+                loss = model(input_ids, segment_ids, input_mask, label_ids, valid_ids, l_mask)
                 if n_gpu > 1:
-                    loss = loss.mean() # mean() to average on multi-gpu.
+                    loss = loss.mean()  # mean() to average on multi-gpu.
                 if args.gradient_accumulation_steps > 1:
                     loss = loss / args.gradient_accumulation_steps
 
@@ -499,7 +500,6 @@ def main():
                 else:
                     loss.backward()
                     torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
-
                 tr_loss += loss.item()
                 nb_tr_examples += input_ids.size(0)
                 nb_tr_steps += 1
@@ -509,13 +509,32 @@ def main():
                     model.zero_grad()
                     global_step += 1
 
+            tr_losses = tr_loss / len(train_dataloader)
+            if tr_losses < 0.05:
+                break
+            train_losses.append(tr_losses)
+            print(train_losses)
+            print(len(train_losses))
+
         # Save a trained model and the associated configuration
+        print(train_losses)
+        print(len(train_losses))
         model_to_save = model.module if hasattr(model, 'module') else model  # Only save the model it-self
         model_to_save.save_pretrained(args.output_dir)
         tokenizer.save_pretrained(args.output_dir)
-        label_map = {i : label for i, label in enumerate(label_list,1)}
-        model_config = {"bert_model":args.bert_model,"do_lower":args.do_lower_case,"max_seq_length":args.max_seq_length,"num_labels":len(label_list)+1,"label_map":label_map}
-        json.dump(model_config,open(os.path.join(args.output_dir,"model_config.json"),"w"))
+        label_map = {i: label for i, label in enumerate(label_list, 1)}
+        model_config = {"bert_model": args.bert_model, "do_lower": args.do_lower_case,
+                        "max_seq_length": args.max_seq_length, "num_labels": len(label_list) + 1,
+                        "label_map": label_map}
+        json.dump(model_config, open(os.path.join(args.output_dir, "model_config.json"), "w"))
+        plt.plot(train_losses, '-o')
+        # plt.plot(eval_accu,'-o')
+        plt.xlabel('epoch')
+        plt.ylabel('loss')
+        plt.legend(['Train'])
+        plt.title('Train Loss')
+
+        plt.show()
         # Load a trained model and config that you have fine-tuned
     else:
         # Load a trained model and vocabulary that you have fine-tuned
