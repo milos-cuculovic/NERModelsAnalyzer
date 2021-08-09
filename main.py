@@ -1,7 +1,7 @@
 import os
 
-from dospacy_transformers import trainSpacyModel
-from dospacy_transformers import testSpacyModel
+from dospacy import trainSpacyModel
+from dospacy import testSpacyModel
 from dobilstm import trainBiLSTMModel
 from datetime import datetime
 
@@ -11,7 +11,7 @@ def train_model(model, modelFile):
     #LABEL = ['LOCATION', 'TRIGGER', 'MODAL', 'ACTION']
 
     ROOT_DIR = os.path.dirname(os.path.abspath('data.json'))
-    path_csv = os.path.join(ROOT_DIR, 'data.csv')
+    path_csv = os.path.join(ROOT_DIR, 'data_full_test.csv')
 
     dropout = 1e-4
     nIter   = 10
@@ -36,14 +36,22 @@ def train_model(model, modelFile):
     nlp.to_disk(modelFile)
 
 
-def test_model(model_type):
-    model_name = input("Model name: ")
+def test_model_manually(model_name):
     number_of_testing_examples = input("Enter the number of testing examples: ")
     testSpacyModel(model_name, number_of_testing_examples)
 
 
 if __name__ == '__main__':
-    model_type = input("Model (1. spaCy; 2. Bi-LSTM; 3. BERT): ")
-    modelFile = input("Enter the Model name to save: ")
-    #train_model(model_type, modelFile)
-    test_model(model_type)
+    action_type = input("Action type: (1. Train; 2. Dataset Test; 3. Manual Test;): ")
+    if action_type == str(1):
+        model_type = input("Model (1. spaCy; 2. Bi-LSTM; 3. BERT): ")
+        modelFile = input("Enter the Model name to save: ")
+        train_model(model_type, os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + modelFile)
+    else:
+        if action_type == str(2):
+            model_name = input("Model name to test: ")
+            test_model_dataset(model_name)
+
+        else:
+            model_name = input("Model name to test: ")
+            test_model_manually(model_name)

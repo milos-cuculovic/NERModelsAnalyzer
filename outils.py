@@ -7,7 +7,7 @@ import csv
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from keras.preprocessing.sequence import pad_sequences
-from keras.utils import to_categorical
+from tensorflow.keras.utils import to_categorical
 import numpy as np
 import tensorflow
 from spacy.scorer import Scorer

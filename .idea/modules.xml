@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/Bi-LSTM.iml" filepath="$PROJECT_DIR$/.idea/Bi-LSTM.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/NER_models_reviewer_comments.iml" filepath="$PROJECT_DIR$/.idea/NER_models_reviewer_comments.iml" />
     </modules>
   </component>
 </project>

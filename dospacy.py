@@ -2,35 +2,18 @@ import csv
 import warnings
 import spacy
 import os
-import pandas as pd
-import numpy as np
 
 from numpy import random
-from spacy.gold import GoldParse
 from spacy.util import minibatch, compounding
-from spacy.util import decaying
 from spacy.scorer import Scorer
 from spacy import displacy
-from collections import Counter
-import matplotlib.pyplot as plt
+from spacy.training import Example
 
 
 def convertDoccanoToSpacy(path_csv, LABEL):
     datasets = []
     csv_file = csv.reader(open(path_csv, "r"), delimiter="	")
     data = {}
-
-
-    #for line in json_file:
-    #    data = json.loads(line)
-    #    data['entities'] = []
-    #    id = data['id']
-    #    for row in csv_file:
-    #        if int(id) == int(row[0]):
-                #data['labels2'] = list(removeduplicate(row[1]))
-                #data['labels2'] = list(removeoverlapping(data['labels2']))
-                #data['entities'].append(row[1])
-
 
     for row in csv_file:
         labels_formated = []
@@ -78,33 +61,22 @@ def trainSpacy(TRAIN_DATA, dropout, nIter, model=None):
         nlp = spacy.blank("en")
         print("Created blank 'en' model")
 
-    # create the built-in pipeline components and add them to the pipeline
-    # nlp.create_pipe works for built-ins that are registered with spaCy
-    if "tagger" not in nlp.pipe_names:
-        tagger = nlp.create_pipe("tagger")
-        nlp.add_pipe(tagger, last=True)
-    if "parser" not in nlp.pipe_names:
-        parser = nlp.create_pipe("parser")
-        nlp.add_pipe(parser, last=True)
     if "ner" not in nlp.pipe_names:
-        ner = nlp.create_pipe("ner")
-        nlp.add_pipe(ner, last=True)
+        nlp.add_pipe("ner", last=True)
     else:
-        ner = nlp.get_pipe("ner")
+        nlp = nlp.get_pipe("ner")
 
-    entities = []
+    examples = []
     # add labels
-    for _, annotations in TRAIN_DATA:
+    for text, annotations in TRAIN_DATA:
         for ent in annotations.get("entities"):
-            entities.append(ent[2])
-            ner.add_label(ent[2])
-
-    print(Counter(entities))
+            examples.append(Example.from_dict(nlp.make_doc(text), annotations))
 
     # get names of other pipes to disable them during training
     pipe_exceptions = ["ner", "tagger", "parser", "trf_wordpiecer", "trf_tok2vec"]
     other_pipes = [pipe for pipe in nlp.pipe_names if pipe not in pipe_exceptions]
-    # only train NER
+
+    #only train NER
     with nlp.disable_pipes(*other_pipes), warnings.catch_warnings():
         # show warnings for misaligned entity spans once
         warnings.filterwarnings("once", category=UserWarning, module='spacy')
@@ -112,45 +84,33 @@ def trainSpacy(TRAIN_DATA, dropout, nIter, model=None):
         # reset and initialize the weights randomly – but only if we're
         # training a new model
         if model is None:
-            optimizer = nlp.begin_training()
+            optimizer = nlp.initialize(lambda: examples)
 
         # Add special case rule
-        infixes = (":","“",",", '“', "/", ";", "-", ".", '”') + nlp.Defaults.infixes
+        infixes = list(nlp.Defaults.infixes)
+        #infixes.extend((":","“",",", '“', "/", ";", "-", ".", '”'))
+        infixes.extend((":", "“", ",", '“', "/", ";", ".", '”'))
         infix_regex = spacy.util.compile_infix_regex(infixes)
         nlp.tokenizer.infix_finditer = infix_regex.finditer
 
-        # Check new tokenization
-        # print([w.text for w in nlp('25) Figure 8:“pines are results of two-step adsorption model” -> What method/software was used for the curve fitting?')])
-        # exit()
-
-        #for train in TRAIN_DATA:
-        #    print(train[0])
-        #    print([w.text for w in nlp(train[0])])
-        #    print("\n")
-
         for itn in range(nIter):
-            random.shuffle(TRAIN_DATA)
+            random.shuffle(examples)
             losses = {}
 
             # batch up the examples using spaCy's minibatch
-            batches = minibatch(TRAIN_DATA, size=compounding(4.0, 32.0, 1.001))
+            batches = minibatch(examples, size=compounding(4.0, 32.0, 1.001))
             for batch in batches:
-                texts, annotations = zip(*batch)
+                #texts, annotations = zip(*batch)
 
                 nlp.update(
-                    texts,  # batch of texts
-                    annotations,  # batch of annotations
+                    batch,
                     drop=dropout,  # dropout - make it harder to memorise data
                     losses=losses,
                     sgd=optimizer,
                 )
+
             print(itn)
             print("Losses", losses)
-
-    # test the trained model
-    for text, _ in TRAIN_DATA:
-        doc = nlp(text)
-        print("Entities", [(ent.text, ent.label_) for ent in doc.ents])
 
     return nlp
 
@@ -197,10 +157,11 @@ def removeBlankSpaces(it, text):
 def evaluate(ner_model, examples):
     scorer = Scorer()
     for input_, annot in examples:
-        doc_gold_text = ner_model.make_doc(input_)
-        gold = GoldParse(doc_gold_text, entities=annot.get('entities'))
+        doc = ner_model.make_doc(input_)
+        example = Example.from_dict(doc, {"entities": annot.get('entities')})
         pred_value = ner_model(input_)
-        scorer.score(pred_value, gold)
+        scorer.score(pred_value, example)
+
     return scorer.scores
 
 

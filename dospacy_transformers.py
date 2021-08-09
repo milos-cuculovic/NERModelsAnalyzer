@@ -82,6 +82,8 @@ def trainSpacy(TRAIN_DATA, dropout, nIter, model=None):
 
     db.to_disk("./train.spacy")  # save the docbin object
 
+    return nlp
+
 
 def removeDuplicate(it):
     seen = []
