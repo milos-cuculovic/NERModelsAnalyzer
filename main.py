@@ -11,7 +11,7 @@ def train_model(model, modelFile):
     #LABEL = ['LOCATION', 'TRIGGER', 'MODAL', 'ACTION']
 
     ROOT_DIR = os.path.dirname(os.path.abspath('data.json'))
-    path_csv = os.path.join(ROOT_DIR, 'data_full_test.csv')
+    path_train_data = os.path.join(ROOT_DIR, 'data_full.json')
 
     dropout = 1e-4
     nIter   = 10
@@ -21,10 +21,10 @@ def train_model(model, modelFile):
     print("Start time = ", current_time)
 
     if model == str(1):
-        nlp = trainSpacyModel(path_csv, LABEL, dropout, nIter)
+        nlp = trainSpacyModel(path_train_data, LABEL, dropout, nIter)
     else:
         if model == str(2):
-            nlp = trainBiLSTMModel(path_csv, LABEL, dropout, nIter)
+            nlp = trainBiLSTMModel(path_train_data, LABEL, dropout, nIter)
         else:
             exit("Wrong model selection")
 

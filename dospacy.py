@@ -2,6 +2,7 @@ import csv
 import warnings
 import spacy
 import os
+import json
 
 from numpy import random
 from spacy.util import minibatch, compounding
@@ -9,7 +10,7 @@ from spacy.scorer import Scorer
 from spacy import displacy
 from spacy.training import Example
 
-
+"""
 def convertDoccanoToSpacy(path_csv, LABEL):
     datasets = []
     csv_file = csv.reader(open(path_csv, "r"), delimiter="	")
@@ -49,7 +50,28 @@ def convertDoccanoToSpacy(path_csv, LABEL):
             datasets.append(dataset)
 
     return datasets
+"""
 
+def convertJsonToSpacy(path_train_data, LABEL):
+
+    labeled_data = []
+    with open(path_train_data, "r") as read_file:
+        for line in read_file:
+            data = json.loads(line)
+            labeled_data.append(data)
+
+    TRAINING_DATA = []
+    for entry in labeled_data:
+        entities = []
+        entry['labels'] = list(removeDuplicate(entry['labels']))
+        entry['labels'] = list(removeOverlapping(data['labels']))
+
+        for e in entry['labels']:
+            entities.append((e[0], e[1], e[2]))
+            spacy_entry = (entry['text'], {"entities": entities})
+            TRAINING_DATA.append(spacy_entry)
+
+    return TRAINING_DATA
 
 def trainSpacy(TRAIN_DATA, dropout, nIter, model=None):
 
@@ -94,22 +116,24 @@ def trainSpacy(TRAIN_DATA, dropout, nIter, model=None):
         nlp.tokenizer.infix_finditer = infix_regex.finditer
 
         for itn in range(nIter):
+            print("Starting iteration " + str(itn))
             random.shuffle(examples)
             losses = {}
 
-            # batch up the examples using spaCy's minibatch
             batches = minibatch(examples, size=compounding(4.0, 32.0, 1.001))
             for batch in batches:
-                #texts, annotations = zip(*batch)
+                try:
+                    nlp.update(
+                        batch,
+                        drop=dropout,  # dropout - make it harder to memorise data
+                        losses=losses,
+                        sgd=optimizer,
+                    )
+                except Exception as error:
+                    print(error)
+                    print(batch)
+                    continue
 
-                nlp.update(
-                    batch,
-                    drop=dropout,  # dropout - make it harder to memorise data
-                    losses=losses,
-                    sgd=optimizer,
-                )
-
-            print(itn)
             print("Losses", losses)
 
     return nlp
@@ -184,9 +208,10 @@ def testSpacyModel(model_name, number_of_testing_examples):
         svg_file.write(svg)
 
 
-def trainSpacyModel(path_csv, LABEL, dropout, nIter, model=None):
-    dataset = convertDoccanoToSpacy(path_csv, LABEL)
-    nlp = trainSpacy(dataset, dropout, nIter, model)
+def trainSpacyModel(path_train_data, LABEL, dropout, nIter, model=None):
+    TRAINING_DATA = convertJsonToSpacy(path_train_data, LABEL)
+
+    nlp = trainSpacy(TRAINING_DATA, dropout, nIter, model)
 
     return nlp
 
