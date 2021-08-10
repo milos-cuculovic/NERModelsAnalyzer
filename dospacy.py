@@ -1,8 +1,8 @@
-import csv
 import warnings
 import spacy
 import os
 import json
+import re
 
 from numpy import random
 from spacy.util import minibatch, compounding
@@ -61,15 +61,17 @@ def convertJsonToSpacy(path_train_data, LABEL):
             labeled_data.append(data)
 
     TRAINING_DATA = []
+
     for entry in labeled_data:
         entities = []
         entry['labels'] = list(removeDuplicate(entry['labels']))
-        entry['labels'] = list(removeOverlapping(data['labels']))
+        entry['labels'] = list(removeOverlapping(entry['labels']))
+        entry['labels'] = list(removeBlankSpaces(entry['labels'], entry['text']))
 
         for e in entry['labels']:
             entities.append((e[0], e[1], e[2]))
-            spacy_entry = (entry['text'], {"entities": entities})
-            TRAINING_DATA.append(spacy_entry)
+        spacy_entry = (entry['text'], {"entities": entities})
+        TRAINING_DATA.append(spacy_entry)
 
     return TRAINING_DATA
 
@@ -88,11 +90,18 @@ def trainSpacy(TRAIN_DATA, dropout, nIter, model=None):
     else:
         nlp = nlp.get_pipe("ner")
 
+    # Add special case rule
+    infixes = list(nlp.Defaults.infixes)
+    infixes.extend((":", "“", ",", '“', "/", ";", "\.", '”'))
+    #infixes.extend((":", "“", ",", '“', "/", ";", '”'))
+    # infixes.extend((":"))
+    infix_regex = spacy.util.compile_infix_regex(infixes)
+    nlp.tokenizer.infix_finditer = infix_regex.finditer
+
     examples = []
     # add labels
     for text, annotations in TRAIN_DATA:
-        for ent in annotations.get("entities"):
-            examples.append(Example.from_dict(nlp.make_doc(text), annotations))
+        examples.append(Example.from_dict(nlp.make_doc(text), annotations))
 
     # get names of other pipes to disable them during training
     pipe_exceptions = ["ner", "tagger", "parser", "trf_wordpiecer", "trf_tok2vec"]
@@ -107,13 +116,6 @@ def trainSpacy(TRAIN_DATA, dropout, nIter, model=None):
         # training a new model
         if model is None:
             optimizer = nlp.initialize(lambda: examples)
-
-        # Add special case rule
-        infixes = list(nlp.Defaults.infixes)
-        #infixes.extend((":","“",",", '“', "/", ";", "-", ".", '”'))
-        infixes.extend((":", "“", ",", '“', "/", ";", ".", '”'))
-        infix_regex = spacy.util.compile_infix_regex(infixes)
-        nlp.tokenizer.infix_finditer = infix_regex.finditer
 
         for itn in range(nIter):
             print("Starting iteration " + str(itn))
@@ -131,7 +133,6 @@ def trainSpacy(TRAIN_DATA, dropout, nIter, model=None):
                     )
                 except Exception as error:
                     print(error)
-                    print(batch)
                     continue
 
             print("Losses", losses)
@@ -177,7 +178,6 @@ def removeBlankSpaces(it, text):
         seen.append(x)
     return seen
 
-
 def evaluate(ner_model, examples):
     scorer = Scorer()
     for input_, annot in examples:
@@ -198,7 +198,6 @@ def testSpacyModel(model_name, number_of_testing_examples):
         test_text = input("Enter your testing text: ")
         doc = nlp(str(test_text))
         for ent in doc.ents:
-            #print(ent.text, ent.start_char, ent.end_char, ent.label_)
             print(ent.text, ent.label_)
 
         svg = displacy.render(doc, style='dep')

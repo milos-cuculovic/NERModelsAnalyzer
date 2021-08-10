@@ -14,7 +14,7 @@ def train_model(model, modelFile):
     path_train_data = os.path.join(ROOT_DIR, 'data_full.json')
 
     dropout = 1e-4
-    nIter   = 10
+    nIter   = 100
 
     now = datetime.now()
     current_time = now.strftime("%H:%M:%S")
