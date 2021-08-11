@@ -178,13 +178,13 @@ def removeBlankSpaces(it, text):
         seen.append(x)
     return seen
 
-def evaluate(nlp, TEST_DATA, LABEL):
-    scorer = Scorer(nlp)
+def evaluate(nlp, TEST_DATA):
     examples = []
     for text, annotations in TEST_DATA:
         examples.append(Example.from_dict(nlp.make_doc(text), annotations))
 
-    return scorer.score_tokenization(examples)
+    #return scorer.score_tokenization(examples)
+    return nlp.evaluate(examples)
 
 
 def testSpacyModel(model_name, number_of_testing_examples):
@@ -210,4 +210,4 @@ def trainSpacyModel(path_train_data, LABEL, dropout, nIter, model=None):
 def evaluateSpacy(model_name, path_test_data, LABEL):
     nlp = spacy.load(model_name)
     TESTING_DATA = convertJsonToSpacy(path_test_data, LABEL)
-    return evaluate(nlp, TESTING_DATA, LABEL)
+    return evaluate(nlp, TESTING_DATA)

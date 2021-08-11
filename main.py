@@ -46,8 +46,23 @@ def test_model_dataset(model_path):
     ROOT_DIR = os.path.dirname(os.path.abspath('data.json'))
     path_test_data = os.path.join(ROOT_DIR, 'data_test_full.json')
     results = evaluateSpacy(model_path, path_test_data, LABEL)
+    print("Entity\t\tPrecision\tRecall\tF-score")
+    for result in results['ents_per_type']:
+        if(result == "LOCATION"):
+            print(
+                "{:}\t{:0.4f}\t{:0.4f}\t{:0.4f}".
+                    format(result, results['ents_per_type'][result]['p'], results['ents_per_type'][result]['r'],
+                           results['ents_per_type'][result]['f'])
+            )
+        else:
+            print(
+                "{:}\t\t{:0.4f}\t{:0.4f}\t{:0.4f}".
+                    format(result, results['ents_per_type'][result]['p'], results['ents_per_type'][result]['r'], results['ents_per_type'][result]['f'])
+            )
+    print()
     print(
-        "Precision {:0.4f}\tRecall {:0.4f}\tF-score {:0.4f}".format(results['ents_p'], results['ents_r'], results['ents_f'])
+        "{:}\t\t{:0.4f}\t{:0.4f}\t{:0.4f}".
+            format("TOTAL", results['ents_p'], results['ents_r'], results['ents_f'])
     )
 
 
