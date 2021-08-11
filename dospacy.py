@@ -2,7 +2,6 @@ import warnings
 import spacy
 import os
 import json
-import re
 
 from numpy import random
 from spacy.util import minibatch, compounding
@@ -115,10 +114,11 @@ def trainSpacy(TRAIN_DATA, dropout, nIter, model=None):
         # reset and initialize the weights randomly – but only if we're
         # training a new model
         if model is None:
-            optimizer = nlp.initialize(lambda: examples)
+            optimizer = nlp.initialize()
+            #optimizer = nlp.initialize(lambda: examples)
 
         for itn in range(nIter):
-            print("Starting iteration " + str(itn))
+            print("Iteration " + str(itn))
             random.shuffle(examples)
             losses = {}
 
@@ -178,15 +178,13 @@ def removeBlankSpaces(it, text):
         seen.append(x)
     return seen
 
-def evaluate(ner_model, examples):
-    scorer = Scorer()
-    for input_, annot in examples:
-        doc = ner_model.make_doc(input_)
-        example = Example.from_dict(doc, {"entities": annot.get('entities')})
-        pred_value = ner_model(input_)
-        scorer.score(pred_value, example)
+def evaluate(nlp, TEST_DATA, LABEL):
+    scorer = Scorer(nlp)
+    examples = []
+    for text, annotations in TEST_DATA:
+        examples.append(Example.from_dict(nlp.make_doc(text), annotations))
 
-    return scorer.scores
+    return scorer.score_tokenization(examples)
 
 
 def testSpacyModel(model_name, number_of_testing_examples):
@@ -200,12 +198,6 @@ def testSpacyModel(model_name, number_of_testing_examples):
         for ent in doc.ents:
             print(ent.text, ent.label_)
 
-        svg = displacy.render(doc, style='dep')
-
-        output_path = os.path.join('./', 'NER.svg')
-        svg_file = open(output_path, "w", encoding="utf-8")
-        svg_file.write(svg)
-
 
 def trainSpacyModel(path_train_data, LABEL, dropout, nIter, model=None):
     TRAINING_DATA = convertJsonToSpacy(path_train_data, LABEL)
@@ -215,5 +207,7 @@ def trainSpacyModel(path_train_data, LABEL, dropout, nIter, model=None):
     return nlp
 
 
-def evaluateSpacy(nlp, dataset):
-    return evaluate(nlp, dataset)
+def evaluateSpacy(model_name, path_test_data, LABEL):
+    nlp = spacy.load(model_name)
+    TESTING_DATA = convertJsonToSpacy(path_test_data, LABEL)
+    return evaluate(nlp, TESTING_DATA, LABEL)
