@@ -370,7 +370,7 @@ def evaluation(data,output_dir):
 
 
 
-def trainBERT(jsonfile):
+def trainBERTModel(jsonfile, modelFile):
     # INITIAL
     removEsc(os.path.abspath(jsonfile))
     # STEP ONE cross validation
@@ -383,11 +383,10 @@ def trainBERT(jsonfile):
     # STEP FOUR REPLACE TRIGGER
     trigConll(os.path.abspath("train.txt"), trigger)
     trigConll(os.path.abspath("valid.txt"), trigger)
-    outputdir = input("Model file ")
-    train(os.path.abspath(""),outputdir)
+    trainBert(modelFile)
 
 
-def train(data,output_dir):
+def trainBert(output_dir):
     processors = {"ner": NerProcessor}
     processor = processors[task_name]()
     label_list = processor.get_labels()
