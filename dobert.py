@@ -6,63 +6,82 @@ Created on Fri Jun 25 17:49:48 2021
 @author: chams
 """
 
-from bert import Ner
 import os
 from torch import nn
 import json
 import logging
-from pytorch_transformers import ( AdamW, BertConfig,
+import matplotlib.pyplot as plt
+from pytorch_transformers import (AdamW, BertConfig,
                                   BertForTokenClassification, BertTokenizer,
                                   WarmupLinearSchedule)
+
 import torch
 from tqdm import tqdm, trange
 from seqeval.metrics import classification_report
 import torch.nn.functional as F
-from torch.utils.data import DataLoader,TensorDataset, SequentialSampler, RandomSampler
+from torch.utils.data import DataLoader, TensorDataset, SequentialSampler, RandomSampler
 from torch.utils.data.distributed import DistributedSampler
 
+from bertconf import removEsc, setenceMean, json_conll, trigConll, crossval
 
-logging.basicConfig(format = '%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
-                    datefmt = '%m/%d/%Y %H:%M:%S',
-                    level = logging.INFO)
+trigger = ['why', 'on the contrary', 'what', 'however', 'either', 'while', 'rather', 'instead of', 'when', 'than',
+           'in order to', 'therefore', 'not only', 'afterwards', 'once again', 'or', 'in order to', 'in particular',
+           'also', 'if not', 'if not then', 'and', 'not only', 'does', 'albeit', 'because', 'is that', 'that',
+           'without', 'who',
+           'whether', 'is it', 'was it', 'such as', 'were they', 'are they', 'thus', 'again', 'given that', 'given the',
+           'how many', 'except', 'nor', 'both', 'whose', 'especialls', 'for instance', 'is this', 'similarly',
+           'were there',
+           'are there', 'is there', 'for the time being', 'based on', 'in particular', 'as currently', 'perhaps',
+           'once',
+           'how', 'otherwise', 'particularly', 'overall', 'although', 'prior to', 'At the same time',
+           'neither', 'apart from', 'besides from', 'if necessary', 'hence', 'how much', 'by doing so', 'since',
+           'how less'
+           'despite', 'accordingly', 'etc', 'always', 'what kind', 'unless', 'which one', 'if not', 'if so', 'even if',
+           'not just', 'not only', 'besides', 'after all', 'generally', 'similar to', 'too', 'like']
+
+logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
+                    datefmt='%m/%d/%Y %H:%M:%S',
+                    level=logging.INFO)
 logger = logging.getLogger(__name__)
-train_batch_size=32
-gradient_accumulation_steps=1
-num_train_epochs=3
-adam_epsilon=1e-8
-maxseqlenght=128
-bert_model="bert-base-cased"
-eval_batch_size=8
-weight_decay=0.01
-learning_rate=5e-5
+train_batch_size = 32
+gradient_accumulation_steps = 1
+num_train_epochs = 3
+adam_epsilon = 1e-8
+maxseqlenght = 128
+bert_model = "bert-base-cased"
+eval_batch_size = 8
+weight_decay = 0.01
+learning_rate = 5e-5
 task_name = "ner"
-output_dir="outner/"
-warmup_proportion=0.01
+warmup_proportion = 0.01
 # device='cuda' 
 device = torch.device("cpu")
-local_rank=-1
-max_grad_norm=1.0
+local_rank = -1
+max_grad_norm = 1.0
 n_gpu = torch.cuda.device_count()
-max_seq_length=128
+max_seq_length = 128
+
+
 class Ner(BertForTokenClassification):
 
-    def forward(self, input_ids, token_type_ids=None, attention_mask=None, labels=None,valid_ids=None,attention_mask_label=None):
-        sequence_output = self.bert(input_ids, token_type_ids, attention_mask,head_mask=None)[0]
-        batch_size,max_len,feat_dim = sequence_output.shape
-        valid_output = torch.zeros(batch_size,max_len,feat_dim,dtype=torch.float32,device='cpu')
+    def forward(self, input_ids, token_type_ids=None, attention_mask=None, labels=None, valid_ids=None,
+                attention_mask_label=None):
+        sequence_output = self.bert(input_ids, token_type_ids, attention_mask, head_mask=None)[0]
+        batch_size, max_len, feat_dim = sequence_output.shape
+        valid_output = torch.zeros(batch_size, max_len, feat_dim, dtype=torch.float32, device='cpu')
         for i in range(batch_size):
             jj = -1
             for j in range(max_len):
-                    if valid_ids[i][j].item() == 1:
-                        jj += 1
-                        valid_output[i][jj] = sequence_output[i][j]
+                if valid_ids[i][j].item() == 1:
+                    jj += 1
+                    valid_output[i][jj] = sequence_output[i][j]
         sequence_output = self.dropout(valid_output)
         logits = self.classifier(sequence_output)
 
         if labels is not None:
             loss_fct = nn.CrossEntropyLoss(ignore_index=0)
             # Only keep active parts of the loss
-            #attention_mask_label = None
+            # attention_mask_label = None
             if attention_mask_label is not None:
                 active_loss = attention_mask_label.view(-1) == 1
                 active_logits = logits.view(-1, self.num_labels)[active_loss]
@@ -73,7 +92,8 @@ class Ner(BertForTokenClassification):
             return loss
         else:
             return logits
-        
+
+
 def readfile(filename):
     '''
     read file
@@ -81,11 +101,11 @@ def readfile(filename):
     f = open(filename)
     data = []
     sentence = []
-    label= []
+    label = []
     for line in f:
-        if len(line)==0 or line.startswith('-DOCSTART') or line[0]=="\n":
+        if len(line) == 0 or line.startswith('-DOCSTART') or line[0] == "\n":
             if len(sentence) > 0:
-                data.append((sentence,label))
+                data.append((sentence, label))
                 sentence = []
                 label = []
             continue
@@ -93,11 +113,13 @@ def readfile(filename):
         sentence.append(splits[0])
         label.append(splits[-1][:-1])
 
-    if len(sentence) >0:
-        data.append((sentence,label))
+    if len(sentence) > 0:
+        data.append((sentence, label))
         sentence = []
         label = []
     return data
+
+
 class InputExample(object):
     """A single training/test example for simple sequence classification."""
 
@@ -117,7 +139,8 @@ class InputExample(object):
         self.text_a = text_a
         self.text_b = text_b
         self.label = label
-        
+
+
 class DataProcessor(object):
     """Base class for data converters for sequence classification data sets."""
 
@@ -138,6 +161,7 @@ class DataProcessor(object):
         """Reads a tab separated value file."""
         return readfile(input_file)
 
+
 class NerProcessor(DataProcessor):
     """Processor for the CoNLL-2003 data set."""
 
@@ -157,18 +181,19 @@ class NerProcessor(DataProcessor):
             self._read_tsv(os.path.join(data_dir, "test.txt")), "test")
 
     def get_labels(self):
-        return ["O", "LOCATION", "TRIGGER", "MODAL", "ACTION", "CONTENT", "[CLS]", "[SEP]"]
+        return ["O", "B-LOCATION","I-LOCATION", "B-TRIGGER","I-TRIGGER",
+                "B-MODAL","I-MODAL", "B-ACTION","I-ACTION", "B-CONTENT","I-CONTENT", "[CLS]", "[SEP]"]
 
-    def _create_examples(self,lines,set_type):
+    def _create_examples(self, lines, set_type):
         examples = []
-        for i,(sentence,label) in enumerate(lines):
+        for i, (sentence, label) in enumerate(lines):
             guid = "%s-%s" % (set_type, i)
             text_a = ' '.join(sentence)
             text_b = None
             label = label
-            examples.append(InputExample(guid=guid,text_a=text_a,text_b=text_b,label=label))
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
         return examples
-    
+
 
 class InputFeatures(object):
     """A single set of features of data."""
@@ -180,15 +205,15 @@ class InputFeatures(object):
         self.label_id = label_id
         self.valid_ids = valid_ids
         self.label_mask = label_mask
-    
-    
+
+
 def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer):
     """Loads a data file into a list of `InputBatch`s."""
 
-    label_map = {label : i for i, label in enumerate(label_list,1)}
+    label_map = {label: i for i, label in enumerate(label_list, 1)}
 
     features = []
-    for (ex_index,example) in enumerate(examples):
+    for (ex_index, example) in enumerate(examples):
         textlist = example.text_a.split(' ')
         labellist = example.label
         tokens = []
@@ -216,8 +241,8 @@ def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer
         label_ids = []
         ntokens.append("[CLS]")
         segment_ids.append(0)
-        valid.insert(0,1)
-        label_mask.insert(0,1)
+        valid.insert(0, 1)
+        label_mask.insert(0, 1)
         label_ids.append(label_map["[CLS]"])
         for i, token in enumerate(tokens):
             ntokens.append(token)
@@ -253,116 +278,142 @@ def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer
             logger.info("*** Example ***")
             logger.info("guid: %s" % (example.guid))
             logger.info("tokens: %s" % " ".join(
-                    [str(x) for x in tokens]))
+                [str(x) for x in tokens]))
             logger.info("input_ids: %s" % " ".join([str(x) for x in input_ids]))
             logger.info("input_mask: %s" % " ".join([str(x) for x in input_mask]))
             logger.info(
-                    "segment_ids: %s" % " ".join([str(x) for x in segment_ids]))
+                "segment_ids: %s" % " ".join([str(x) for x in segment_ids]))
             # logger.info("label: %s (id = %d)" % (example.label, label_ids))
 
         features.append(
-                InputFeatures(input_ids=input_ids,
-                              input_mask=input_mask,
-                              segment_ids=segment_ids,
-                              label_id=label_ids,
-                              valid_ids=valid,
-                              label_mask=label_mask))
+            InputFeatures(input_ids=input_ids,
+                          input_mask=input_mask,
+                          segment_ids=segment_ids,
+                          label_id=label_ids,
+                          valid_ids=valid,
+                          label_mask=label_mask))
     return features
 
-tokenizer = BertTokenizer.from_pretrained(bert_model,do_lower_case='store_true') 
-def evaluation(data):
-        processors = {"ner":NerProcessor}
-        processor = processors[task_name]()
-        label_list = processor.get_labels()
-        num_labels = len(label_list) + 1
-        config = BertConfig.from_pretrained('bert-base-cased', num_labels=num_labels, finetuning_task='ner')
-        model = Ner.from_pretrained("/home/chams/BERT-NER/outner/",from_tf = False, config = config)
-        
-        label_list = processor.get_labels()
-        eval_examples = processor.get_dev_examples(data)
-        eval_features = convert_examples_to_features(eval_examples, label_list, maxseqlenght, tokenizer)
-        logger.info("***** Running evaluation *****")
-        logger.info("  Num examples = %d", len(eval_examples))
-        logger.info("  Batch size = %d", eval_batch_size)
-        all_input_ids = torch.tensor([f.input_ids for f in eval_features], dtype=torch.long)
-        all_input_mask = torch.tensor([f.input_mask for f in eval_features], dtype=torch.long)
-        all_segment_ids = torch.tensor([f.segment_ids for f in eval_features], dtype=torch.long)
-        all_label_ids = torch.tensor([f.label_id for f in eval_features], dtype=torch.long)
-        all_valid_ids = torch.tensor([f.valid_ids for f in eval_features], dtype=torch.long)
-        all_lmask_ids = torch.tensor([f.label_mask for f in eval_features], dtype=torch.long)
-        eval_data = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids,all_valid_ids,all_lmask_ids)
-        # Run prediction for full data
-        eval_sampler = SequentialSampler(eval_data)
-        eval_dataloader = DataLoader(eval_data, sampler=eval_sampler, batch_size=eval_batch_size)
-        model.eval()
-        eval_loss, eval_accuracy = 0, 0
-        nb_eval_steps, nb_eval_examples = 0, 0
-        y_true = []
-        y_pred = []
-        label_map = {i : label for i, label in enumerate(label_list,1)}
-        for input_ids, input_mask, segment_ids, label_ids,valid_ids,l_mask in tqdm(eval_dataloader, desc="Evaluating"):
-            input_ids = input_ids.to(device)
-            input_mask = input_mask.to(device)
-            segment_ids = segment_ids.to(device)
-            valid_ids = valid_ids.to(device)
-            label_ids = label_ids.to(device)
-            l_mask = l_mask.to(device)
 
-            with torch.no_grad():
-                logits = model(input_ids, segment_ids, input_mask,valid_ids=valid_ids,attention_mask_label=l_mask)
+tokenizer = BertTokenizer.from_pretrained(bert_model, do_lower_case='store_true')
 
-            logits = torch.argmax(F.log_softmax(logits,dim=2),dim=2)
-            logits = logits.detach().cpu().numpy()
-            label_ids = label_ids.to('cpu').numpy()
-            input_mask = input_mask.to('cpu').numpy()
 
-            for i, label in enumerate(label_ids):
-                temp_1 = []
-                temp_2 = []
-                for j,m in enumerate(label):
-                    if j == 0:
-                        continue
-                    elif label_ids[i][j] == len(label_map):
-                        y_true.append(temp_1)
-                        y_pred.append(temp_2)
-                        break
-                    else:
-                        temp_1.append(label_map[label_ids[i][j]])
-                        temp_2.append(label_map[logits[i][j]])
-
-        report = classification_report(y_true, y_pred,digits=4)
-        logger.info("\n%s", report)
-        output_eval_file = os.path.join(output_dir, "eval_results.txt")
-        with open(output_eval_file, "w") as writer:
-            logger.info("***** Eval results *****")
-            logger.info("\n%s", report)
-            writer.write(report)
-        
-def train(data):
-    processors = {"ner":NerProcessor}
+def evaluation(data,output_dir):
+    processors = {"ner": NerProcessor}
     processor = processors[task_name]()
     label_list = processor.get_labels()
     num_labels = len(label_list) + 1
-    train_examples = processor.get_train_examples(data)
-    num_train_optimization_steps = int(len(train_examples) / train_batch_size / gradient_accumulation_steps) * num_train_epochs       
+    config = BertConfig.from_pretrained('bert-base-cased', num_labels=num_labels, finetuning_task='ner')
+    model = Ner.from_pretrained(os.path.abspath(output_dir), from_tf=False, config=config)
+
+    label_list = processor.get_labels()
+    eval_examples = processor.get_dev_examples(data)
+    eval_features = convert_examples_to_features(eval_examples, label_list, maxseqlenght, tokenizer)
+    logger.info("***** Running evaluation *****")
+    logger.info("  Num examples = %d", len(eval_examples))
+    logger.info("  Batch size = %d", eval_batch_size)
+    all_input_ids = torch.tensor([f.input_ids for f in eval_features], dtype=torch.long)
+    all_input_mask = torch.tensor([f.input_mask for f in eval_features], dtype=torch.long)
+    all_segment_ids = torch.tensor([f.segment_ids for f in eval_features], dtype=torch.long)
+    all_label_ids = torch.tensor([f.label_id for f in eval_features], dtype=torch.long)
+    all_valid_ids = torch.tensor([f.valid_ids for f in eval_features], dtype=torch.long)
+    all_lmask_ids = torch.tensor([f.label_mask for f in eval_features], dtype=torch.long)
+    eval_data = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids, all_valid_ids,
+                              all_lmask_ids)
+    # Run prediction for full data
+    eval_sampler = SequentialSampler(eval_data)
+    eval_dataloader = DataLoader(eval_data, sampler=eval_sampler, batch_size=eval_batch_size)
+    model.eval()
+    eval_loss, eval_accuracy = 0, 0
+    nb_eval_steps, nb_eval_examples = 0, 0
+    y_true = []
+    y_pred = []
+    label_map = {i: label for i, label in enumerate(label_list, 1)}
+    for input_ids, input_mask, segment_ids, label_ids, valid_ids, l_mask in tqdm(eval_dataloader, desc="Evaluating"):
+        input_ids = input_ids.to(device)
+        input_mask = input_mask.to(device)
+        segment_ids = segment_ids.to(device)
+        valid_ids = valid_ids.to(device)
+        label_ids = label_ids.to(device)
+        l_mask = l_mask.to(device)
+
+        with torch.no_grad():
+            logits = model(input_ids, segment_ids, input_mask, valid_ids=valid_ids, attention_mask_label=l_mask)
+
+        logits = torch.argmax(F.log_softmax(logits, dim=2), dim=2)
+        logits = logits.detach().cpu().numpy()
+        label_ids = label_ids.to('cpu').numpy()
+        input_mask = input_mask.to('cpu').numpy()
+
+        for i, label in enumerate(label_ids):
+            temp_1 = []
+            temp_2 = []
+            for j, m in enumerate(label):
+                if j == 0:
+                    continue
+                elif label_ids[i][j] == len(label_map):
+                    y_true.append(temp_1)
+                    y_pred.append(temp_2)
+                    break
+                else:
+                    temp_1.append(label_map[label_ids[i][j]])
+                    temp_2.append(label_map[logits[i][j]])
+
+    report = classification_report(y_true, y_pred, digits=4)
+    logger.info("\n%s", report)
+    output_eval_file = os.path.join(output_dir, "eval_results.txt")
+    with open(output_eval_file, "w") as writer:
+        logger.info("***** Eval results *****")
+        logger.info("\n%s", report)
+        writer.write(report)
+
+
+
+
+def trainBERT(jsonfile):
+    # INITIAL
+    removEsc(os.path.abspath(jsonfile))
+    # STEP ONE cross validation
+    crossval(os.path.abspath(jsonfile), os.path.abspath(""))
+    # STEP TWO remove sentence without action and location
+    setenceMean(os.path.abspath("train1.json"))
+    # STEP THREE convert json to conll
+    json_conll(os.path.abspath("train1.json"), os.path.abspath(""), 'train.txt')
+    json_conll(os.path.abspath("valid1.json"), os.path.abspath(""), 'valid.txt')
+    # STEP FOUR REPLACE TRIGGER
+    trigConll(os.path.abspath("train.txt"), trigger)
+    trigConll(os.path.abspath("valid.txt"), trigger)
+    outputdir = input("Model file ")
+    train(os.path.abspath(""),outputdir)
+
+
+def train(data,output_dir):
+    processors = {"ner": NerProcessor}
+    processor = processors[task_name]()
+    label_list = processor.get_labels()
+    num_labels = len(label_list) + 1
+    train_examples = processor.get_train_examples("")
+    num_train_optimization_steps = int(
+        len(train_examples) / train_batch_size / gradient_accumulation_steps) *num_train_epochs
     config = BertConfig.from_pretrained(bert_model, num_labels=num_labels, finetuning_task=task_name)
-    model = Ner.from_pretrained(bert_model, from_tf = False, config = config)
+    model = Ner.from_pretrained(bert_model,
+                                from_tf=False,
+                                config=config)
     model.to(device)
-    # if local_rank != -1:
-    #     model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[local_rank], output_device=local_rank, find_unused_parameters=True)
-    
+
     param_optimizer = list(model.named_parameters())
-    no_decay = ['bias','LayerNorm.weight']
+    no_decay = ['bias', 'LayerNorm.weight']
     optimizer_grouped_parameters = [
-    {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': weight_decay},
-    {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0} ]
+        {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)],
+         'weight_decay': weight_decay},
+        {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}]
     warmup_steps = int(warmup_proportion * num_train_optimization_steps)
     optimizer = AdamW(optimizer_grouped_parameters, lr=learning_rate, eps=adam_epsilon)
     scheduler = WarmupLinearSchedule(optimizer, warmup_steps=warmup_steps, t_total=num_train_optimization_steps)
-    
+
     if local_rank != -1:
-            num_train_optimization_steps = num_train_optimization_steps // torch.distributed.get_world_size()
-    
+        num_train_optimization_steps = num_train_optimization_steps // torch.distributed.get_world_size()
+
     train_features = convert_examples_to_features(train_examples, label_list, max_seq_length, tokenizer)
     logger.info("***** Running training *****")
     logger.info("  Num examples = %d", len(train_examples))
@@ -374,26 +425,31 @@ def train(data):
     all_label_ids = torch.tensor([f.label_id for f in train_features], dtype=torch.long)
     all_valid_ids = torch.tensor([f.valid_ids for f in train_features], dtype=torch.long)
     all_lmask_ids = torch.tensor([f.label_mask for f in train_features], dtype=torch.long)
-    train_data = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids,all_valid_ids,all_lmask_ids)
+    train_data = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids, all_valid_ids,
+                               all_lmask_ids)
     if local_rank == -1:
         train_sampler = RandomSampler(train_data)
     else:
         train_sampler = DistributedSampler(train_data)
     train_dataloader = DataLoader(train_data, sampler=train_sampler, batch_size=train_batch_size)
     global_step = 0
+    nb_tr_steps = 0
     model.train()
+    train_losses = []
     for _ in trange(int(num_train_epochs), desc="Epoch"):
         tr_loss = 0
         nb_tr_examples, nb_tr_steps = 0, 0
         for step, batch in enumerate(tqdm(train_dataloader, desc="Iteration")):
             batch = tuple(t.to(device) for t in batch)
-            input_ids, input_mask, segment_ids, label_ids, valid_ids,l_mask = batch
-            loss = model(input_ids, segment_ids, input_mask, label_ids,valid_ids,l_mask)
-            if gradient_accumulation_steps > 1:
-                loss = loss / gradient_accumulation_steps
-            else:
-                loss.backward()
-                torch.nn.utils.clip_grad_norm_(model.parameters(),max_grad_norm)
+            input_ids, input_mask, segment_ids, label_ids, valid_ids, l_mask = batch
+            loss = model(input_ids, segment_ids, input_mask, label_ids, valid_ids, l_mask)
+            if n_gpu > 1:
+                loss = loss.mean()  # mean() to average on multi-gpu.
+            #
+            # with amp.scale_loss(loss, optimizer) as scaled_loss:
+            #     scaled_loss.backward()
+            #     torch.nn.utils.clip_grad_norm_(amp.master_params(optimizer), max_grad_norm)
+
             tr_loss += loss.item()
             nb_tr_examples += input_ids.size(0)
             nb_tr_steps += 1
@@ -403,16 +459,30 @@ def train(data):
                 model.zero_grad()
                 global_step += 1
 
-        # Save a trained model and the associated configuration
+        tr_losses = tr_loss / len(train_dataloader)
+        if tr_losses < 0.05:
+            break
+        train_losses.append(tr_losses)
+        print(train_losses)
+        print(len(train_losses))
+
+    # Save a trained model and the associated configuration
+    print(train_losses)
+    print(len(train_losses))
     model_to_save = model.module if hasattr(model, 'module') else model  # Only save the model it-self
     model_to_save.save_pretrained(output_dir)
     tokenizer.save_pretrained(output_dir)
-    label_map = {i : label for i, label in enumerate(label_list,1)}
-    model_config = {"bert_model":bert_model,"do_lower":"'store_true'","max_seq_length":max_seq_length,"num_labels":len(label_list)+1,"label_map":label_map}
-    json.dump(model_config,open(os.path.join(output_dir,"model_config.json"),"w"))
-        # Load a trained model and config that you have fine-tuned
-    
-    
-    
-    
-train("data/")
+    label_map = {i: label for i, label in enumerate(label_list, 1)}
+    model_config = {"bert_model": bert_model, "do_lower": "true",
+                    "max_seq_length": max_seq_length, "num_labels": len(label_list) + 1, "label_map": label_map}
+    json.dump(model_config, open(os.path.join(output_dir, "model_config.json"), "w"))
+    plt.plot(train_losses, '-o')
+    # plt.plot(eval_accu,'-o')
+    plt.xlabel('epoch')
+    plt.ylabel('loss')
+    plt.legend(['Train'])
+    plt.title('Train Loss')
+
+    plt.show()
+
+#train("data/")
