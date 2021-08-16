@@ -12,9 +12,11 @@ def train_model(model, modelFile):
     #LABEL = ['LOCATION', 'TRIGGER', 'MODAL', 'ACTION']
 
     ROOT_DIR = os.path.dirname(os.path.abspath('data.json'))
-    path_train_data = os.path.join(ROOT_DIR, 'data_train_small.json')
+    path_train_data = os.path.join(ROOT_DIR, 'data_train_full.json')
+    path_valid_data = os.path.join(ROOT_DIR, 'data_valid_full.json')
 
-    dropout = 1e-5
+    #dropout = 1e-5
+    dropout = 0.2
     nIter   = 100
 
     now = datetime.now()
@@ -22,10 +24,10 @@ def train_model(model, modelFile):
     print("Start time = ", current_time)
 
     if model == str(1):
-        nlp = trainSpacyModel(path_train_data, LABEL, dropout, nIter)
+        nlp, plt = trainSpacyModel(path_train_data, path_valid_data, LABEL, dropout, nIter, modelFile)
     else:
         if model == str(2):
-            nlp = trainBiLSTMModel(path_train_data, LABEL, dropout, nIter)
+            nlp = trainBiLSTMModel(path_train_data, LABEL, dropout, nIter, modelFile)
         else:
             exit("Wrong model selection")
 
@@ -35,6 +37,10 @@ def train_model(model, modelFile):
 
     # Save the trained Model
     nlp.to_disk(modelFile)
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.savefig(modelFile + '/losses_graph.png')
+    plt.show()
 
 
 def test_model_manually(model_path):
@@ -77,8 +83,11 @@ if __name__ == '__main__':
             model_name = input("Model name to test: ")
             model_path = os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + model_name
             test_model_dataset(model_path)
-
         else:
-            model_name = input("Model name to test: ")
-            model_path = os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + model_name
-            test_model_manually(model_path)
+            if action_type == str(2):
+                model_name = input("Model name to test: ")
+                model_path = os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + model_name
+                test_model_manually(model_path)
+            else:
+                train_model("1", os.path.dirname(os.path.abspath(__file__)) + '/trained_models/1_default')
+

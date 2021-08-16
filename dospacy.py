@@ -1,13 +1,17 @@
 import warnings
+
+import numpy as np
 import spacy
 import os
 import json
+import matplotlib.pyplot as plt
 
 from numpy import random
 from spacy.util import minibatch, compounding
 from spacy.scorer import Scorer
 from spacy import displacy
 from spacy.training import Example
+from thinc.api import SGD, RAdam, Adam
 
 """
 def convertDoccanoToSpacy(path_csv, LABEL):
@@ -74,7 +78,7 @@ def convertJsonToSpacy(path_train_data, LABEL):
 
     return TRAINING_DATA
 
-def trainSpacy(TRAIN_DATA, dropout, nIter, model=None):
+def trainSpacy(TRAIN_DATA, VALID_DATA, dropout, nIter, modelFile, model=None):
 
     """Load the model, set up the pipeline and train the entity recognizer."""
     if model is not None:
@@ -84,6 +88,9 @@ def trainSpacy(TRAIN_DATA, dropout, nIter, model=None):
         nlp = spacy.blank("en")
         print("Created blank 'en' model")
 
+    #if "transformer" not in nlp.pipe_names:
+    #    nlp.add_pipe("transformer", last=True)
+
     if "ner" not in nlp.pipe_names:
         nlp.add_pipe("ner", last=True)
     else:
@@ -92,19 +99,22 @@ def trainSpacy(TRAIN_DATA, dropout, nIter, model=None):
     # Add special case rule
     infixes = list(nlp.Defaults.infixes)
     infixes.extend((":", "“", ",", '“', "/", ";", "\.", '”'))
-    #infixes.extend((":", "“", ",", '“', "/", ";", '”'))
-    # infixes.extend((":"))
     infix_regex = spacy.util.compile_infix_regex(infixes)
     nlp.tokenizer.infix_finditer = infix_regex.finditer
 
-    examples = []
+    examples_train = []
     # add labels
     for text, annotations in TRAIN_DATA:
-        examples.append(Example.from_dict(nlp.make_doc(text), annotations))
+        examples_train.append(Example.from_dict(nlp.make_doc(text), annotations))
+
+    examples_valid = []
+    # add labels
+    for text, annotations in VALID_DATA:
+        examples_valid.append(Example.from_dict(nlp.make_doc(text), annotations))
 
     # get names of other pipes to disable them during training
-    pipe_exceptions = ["ner", "tagger", "parser", "trf_wordpiecer", "trf_tok2vec"]
-    other_pipes = [pipe for pipe in nlp.pipe_names if pipe not in pipe_exceptions]
+    #pipe_exceptions = ["ner", "tagger", "parser", "trf_wordpiecer", "trf_tok2vec"]
+    other_pipes = [pipe for pipe in nlp.pipe_names if pipe != "ner"]
 
     #only train NER
     with nlp.disable_pipes(*other_pipes), warnings.catch_warnings():
@@ -114,30 +124,83 @@ def trainSpacy(TRAIN_DATA, dropout, nIter, model=None):
         # reset and initialize the weights randomly – but only if we're
         # training a new model
         if model is None:
-            optimizer = nlp.initialize()
-            #optimizer = nlp.initialize(lambda: examples)
+            #optimizer_default = nlp.initialize()
+            optimizer_adam = Adam(
+                learn_rate=0.001,
+                beta1=0.9,
+                beta2=0.999,
+                eps=1e-08,
+                L2=1e-6,
+                grad_clip=1.0,
+                use_averages=True,
+                L2_is_weight_decay=True
+            )
+
+            optimizer_sdg = SGD(
+                learn_rate=0.001,
+                L2=1e-6,
+                grad_clip=1.0
+            )
+
+            optimizer_radam = RAdam(
+                learn_rate=0.001,
+                beta1=0.9,
+                beta2=0.999,
+                eps=1e-08,
+                L2_is_weight_decay=True,
+                grad_clip=1.0,
+                use_averages=True,
+            )
+
+            #optimizer_lambda = nlp.initialize(lambda: examples)
+
+            nlp.initialize()
+            losses_train_history = []
+            losses_valid_history = []
 
         for itn in range(nIter):
             print("Iteration " + str(itn))
-            random.shuffle(examples)
-            losses = {}
+            random.shuffle(examples_train)
+            losses_train = {}
 
-            batches = minibatch(examples, size=compounding(4.0, 32.0, 1.001))
+            batches = minibatch(examples_train, size=compounding(4.0, 32.0, 1.001))
             for batch in batches:
                 try:
                     nlp.update(
                         batch,
                         drop=dropout,  # dropout - make it harder to memorise data
-                        losses=losses,
-                        sgd=optimizer,
+                        losses=losses_train,
+                        sgd=optimizer_radam,
                     )
                 except Exception as error:
                     print(error)
                     continue
 
-            print("Losses", losses)
+            print("Losses train", losses_train)
+            losses_train_history.append(losses_train['ner'])
 
-    return nlp
+            losses_valid = {}
+            batches2 = minibatch(examples_valid, size=compounding(4.0, 32.0, 1.001))
+            for batch2 in batches2:
+                try:
+                    nlp.update(
+                        batch2,
+                        sgd=None,
+                        losses=losses_valid
+                    )
+                except Exception as error:
+                    print(error)
+                    continue
+
+            nlp.use_params(optimizer_radam.averages)
+
+            print("Losses valid", losses_valid)
+            losses_valid_history.append(losses_valid['ner'])
+
+        plt.plot(np.array(list(losses_train_history)).astype(float))
+        plt.plot(np.array(list(losses_valid_history)).astype(float))
+
+    return nlp, plt
 
 
 def removeDuplicate(it):
@@ -199,12 +262,13 @@ def testSpacyModel(model_name, number_of_testing_examples):
             print(ent.text, ent.label_)
 
 
-def trainSpacyModel(path_train_data, LABEL, dropout, nIter, model=None):
-    TRAINING_DATA = convertJsonToSpacy(path_train_data, LABEL)
+def trainSpacyModel(path_train_data, path_valid_data, LABEL, dropout, nIter, modelFile):
+    TRAIN_DATA = convertJsonToSpacy(path_train_data, LABEL)
+    VALID_DATA = convertJsonToSpacy(path_valid_data, LABEL)
 
-    nlp = trainSpacy(TRAINING_DATA, dropout, nIter, model)
+    nlp, plt = trainSpacy(TRAIN_DATA, VALID_DATA, dropout, nIter, modelFile)
 
-    return nlp
+    return nlp, plt
 
 
 def evaluateSpacy(model_name, path_test_data, LABEL):
