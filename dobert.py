@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 from pytorch_transformers import (AdamW, BertConfig,
                                   BertForTokenClassification, BertTokenizer,
                                   WarmupLinearSchedule)
+from transformers import pipeline,  AutoModelForTokenClassification
 
 import torch
 from tqdm import tqdm, trange
@@ -386,6 +387,33 @@ def trainBERTModel(jsonfile, modelFile):
     trainBert(modelFile)
 
 
+def prediction(t):
+    mode = AutoModelForTokenClassification.from_pretrained("groupedmodel")
+    tokenize = BertTokenizer.from_pretrained("groupedmodel", do_lower_case="store_false")
+    # mode("test")
+    nlp_ner = pipeline(
+        "ner",
+        # # grouped_entities=True,
+        # aggregation_strategy="SIMPLE",
+        model=mode,
+        tokenizer=tokenize
+    )
+    label_list = ["O", "B-LOCATION", "I-LOCATION", "B-TRIGGER", "I-TRIGGER",
+                  "B-MODAL", "I-MODAL", "B-ACTION", "I-ACTION", "B-CONTENT", "I-CONTENT", "[CLS]", "[SEP]"]
+    prediction = []
+    for dic in nlp_ner(t):
+        dicINT = {}
+        label = dic['entity']
+        print(label)
+        index = label.find("_") + 1
+        number = label[index:]
+        pos = int(number) - 1
+        dicINT['entity'] = label_list[pos]
+        dicINT['word'] = dic['word']
+        dicINT['score'] = dic['score']
+        prediction.append(dicINT)
+
+    print(prediction)
 def trainBert(output_dir):
     processors = {"ner": NerProcessor}
     processor = processors[task_name]()
