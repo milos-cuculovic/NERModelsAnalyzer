@@ -388,8 +388,8 @@ def trainBERTModel(jsonfile, modelFile):
 
 
 def prediction(t):
-    mode = AutoModelForTokenClassification.from_pretrained("groupedmodel")
-    tokenize = BertTokenizer.from_pretrained("groupedmodel", do_lower_case="store_false")
+    mode = AutoModelForTokenClassification.from_pretrained("/home/chams/BERT-NER/groupedmodel")
+    tokenize = BertTokenizer.from_pretrained("/home/chams/BERT-NER/groupedmodel", do_lower_case="store_false")
     # mode("test")
     nlp_ner = pipeline(
         "ner",
@@ -400,20 +400,20 @@ def prediction(t):
     )
     label_list = ["O", "B-LOCATION", "I-LOCATION", "B-TRIGGER", "I-TRIGGER",
                   "B-MODAL", "I-MODAL", "B-ACTION", "I-ACTION", "B-CONTENT", "I-CONTENT", "[CLS]", "[SEP]"]
-    prediction = []
+    predicti = []
     for dic in nlp_ner(t):
-        dicINT = {}
+        dic_int = {}
         label = dic['entity']
         print(label)
         index = label.find("_") + 1
         number = label[index:]
         pos = int(number) - 1
-        dicINT['entity'] = label_list[pos]
-        dicINT['word'] = dic['word']
-        dicINT['score'] = dic['score']
-        prediction.append(dicINT)
+        dic_int['entity'] = label_list[pos]
+        dic_int['word'] = dic['word']
+        dic_int['score'] = dic['score']
+        predicti.append(dic_int)
 
-    print(prediction)
+    print(predicti)
 def trainBert(output_dir):
     processors = {"ner": NerProcessor}
     processor = processors[task_name]()
