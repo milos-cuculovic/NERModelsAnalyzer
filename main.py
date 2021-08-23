@@ -103,7 +103,7 @@ if __name__ == '__main__':
                     model_name = input("Model name to test: ")
                     text = input("text to predict: ")
 
-                    prediction(text, model_name)
+                    print(prediction(text, model_name))
 
             else:
                 train_model("1", os.path.dirname(os.path.abspath(__file__)) + '/trained_models/1_default')
