@@ -387,11 +387,14 @@ def trainBERTModel(jsonfile, modelFile):
     trainBert(modelFile)
 
 
-def prediction(text, model_name):
+from transformers import pipeline, AutoModelForTokenClassification
+from transformers import BertTokenizer, BertForTokenClassification
+
+
+def prediction(t,model_name):
     model_path = os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + model_name
     mode = AutoModelForTokenClassification.from_pretrained(model_path)
-    tokenize = BertTokenizer.from_pretrained(model_path, do_lower_case="store_false")
-
+    tokenize = BertTokenizer.from_pretrained(model_path)
     # mode("test")
     nlp_ner = pipeline(
         "ner",
@@ -402,20 +405,21 @@ def prediction(text, model_name):
     )
     label_list = ["O", "B-LOCATION", "I-LOCATION", "B-TRIGGER", "I-TRIGGER",
                   "B-MODAL", "I-MODAL", "B-ACTION", "I-ACTION", "B-CONTENT", "I-CONTENT", "[CLS]", "[SEP]"]
-    predicti = []
-    for dic in nlp_ner(text):
-        dic_int = {}
+
+    prediction = []
+    for dic in nlp_ner(t):
+        dicINT = {}
         label = dic['entity']
-        print(label)
         index = label.find("_") + 1
         number = label[index:]
         pos = int(number) - 1
-        dic_int['entity'] = label_list[pos]
-        dic_int['word'] = dic['word']
-        dic_int['score'] = dic['score']
-        predicti.append(dic_int)
+        dicINT['entity'] = label_list[pos]
+        dicINT['word'] = dic['word']
+        dicINT['score'] = dic['score']
+        prediction.append(dicINT)
 
-    print(predicti)
+    return prediction
+
 def trainBert(output_dir):
     processors = {"ner": NerProcessor}
     processor = processors[task_name]()
