@@ -95,13 +95,15 @@ if __name__ == '__main__':
         else:
             if action_type == str(3):
                 model = input("Model (1. spaCy; 2.BERT): ")
-                if model=="1":
+                if model == "1":
                     model_name = input("Model name to test: ")
                     model_path = os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + model_name
                     test_model_manually(model_path)
-                elif model=="2":
-                    text=input("text to predict ")
-                    prediction(text)
+                elif model == "2":
+                    model_name = input("Model name to test: ")
+                    text = input("text to predict: ")
+
+                    prediction(text, model_name)
 
             else:
                 train_model("1", os.path.dirname(os.path.abspath(__file__)) + '/trained_models/1_default')

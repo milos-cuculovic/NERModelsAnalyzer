@@ -387,9 +387,11 @@ def trainBERTModel(jsonfile, modelFile):
     trainBert(modelFile)
 
 
-def prediction(t):
-    mode = AutoModelForTokenClassification.from_pretrained("/home/chams/BERT-NER/groupedmodel")
-    tokenize = BertTokenizer.from_pretrained("/home/chams/BERT-NER/groupedmodel", do_lower_case="store_false")
+def prediction(text, model_name):
+    model_path = os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + model_name
+    mode = AutoModelForTokenClassification.from_pretrained(model_path)
+    tokenize = BertTokenizer.from_pretrained(model_path, do_lower_case="store_false")
+
     # mode("test")
     nlp_ner = pipeline(
         "ner",
@@ -401,7 +403,7 @@ def prediction(t):
     label_list = ["O", "B-LOCATION", "I-LOCATION", "B-TRIGGER", "I-TRIGGER",
                   "B-MODAL", "I-MODAL", "B-ACTION", "I-ACTION", "B-CONTENT", "I-CONTENT", "[CLS]", "[SEP]"]
     predicti = []
-    for dic in nlp_ner(t):
+    for dic in nlp_ner(text):
         dic_int = {}
         label = dic['entity']
         print(label)
