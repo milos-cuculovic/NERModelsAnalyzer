@@ -519,7 +519,7 @@ def trainBert(output_dir):
     plt.ylabel('loss')
     plt.legend(['Train'])
     plt.title('Train Loss')
-
     plt.show()
+    plt.savefig(output_dir+'/losses.png')
 
 #train("data/")
