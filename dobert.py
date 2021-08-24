@@ -421,6 +421,10 @@ def prediction(t,model_name):
     return prediction
 
 def trainBert(output_dir):
+    if os.path.exists(output_dir) and os.listdir1(output_dir) :
+        raise ValueError("({}) already exists and is not empty.".format(output_dir))
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
     processors = {"ner": NerProcessor}
     processor = processors[task_name]()
     label_list = processor.get_labels()
