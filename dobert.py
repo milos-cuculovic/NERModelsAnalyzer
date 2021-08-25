@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 from pytorch_transformers import (AdamW, BertConfig,
                                   BertForTokenClassification, BertTokenizer,
                                   WarmupLinearSchedule)
-from transformers import pipeline,  AutoModelForTokenClassification
+from transformers import pipeline, AutoModelForTokenClassification
 
 import torch
 from tqdm import tqdm, trange
@@ -182,8 +182,8 @@ class NerProcessor(DataProcessor):
             self._read_tsv(os.path.join(data_dir, "test.txt")), "test")
 
     def get_labels(self):
-        return ["O", "B-LOCATION","I-LOCATION", "B-TRIGGER","I-TRIGGER",
-                "B-MODAL","I-MODAL", "B-ACTION","I-ACTION", "B-CONTENT","I-CONTENT", "[CLS]", "[SEP]"]
+        return ["O", "B-LOCATION", "I-LOCATION", "B-TRIGGER", "I-TRIGGER",
+                "B-MODAL", "I-MODAL", "B-ACTION", "I-ACTION", "B-CONTENT", "I-CONTENT", "[CLS]", "[SEP]"]
 
     def _create_examples(self, lines, set_type):
         examples = []
@@ -299,7 +299,7 @@ def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer
 tokenizer = BertTokenizer.from_pretrained(bert_model, do_lower_case='store_true')
 
 
-def evaluation(data,output_dir):
+def evaluation(data, output_dir):
     processors = {"ner": NerProcessor}
     processor = processors[task_name]()
     label_list = processor.get_labels()
@@ -369,8 +369,6 @@ def evaluation(data,output_dir):
         writer.write(report)
 
 
-
-
 def trainBERTModel(jsonfile, modelFile):
     # INITIAL
     removEsc(os.path.abspath(jsonfile))
@@ -391,15 +389,26 @@ from transformers import pipeline, AutoModelForTokenClassification
 from transformers import BertTokenizer, BertForTokenClassification
 
 
-def prediction(t,model_name):
+def pip_aggregation(model_name, pathdirectory):
     model_path = os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + model_name
     mode = AutoModelForTokenClassification.from_pretrained(model_path)
     tokenize = BertTokenizer.from_pretrained(model_path)
-    # mode("test")
     nlp_ner = pipeline(
         "ner",
         # # grouped_entities=True,
-        # aggregation_strategy="SIMPLE",
+        aggregation_strategy="SIMPLE",
+        model=mode,
+        tokenizer=tokenize
+    )
+    nlp_ner.save_pretrained(pathdirectory)
+
+
+def prediction(t, model_name):
+    model_path = os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + model_name
+    mode = AutoModelForTokenClassification.from_pretrained(model_path)
+    tokenize = BertTokenizer.from_pretrained(model_path)
+    nlp_ner = pipeline(
+        "ner",
         model=mode,
         tokenizer=tokenize
     )
@@ -420,8 +429,9 @@ def prediction(t,model_name):
 
     return prediction
 
+
 def trainBert(output_dir):
-    if os.path.exists(output_dir) and os.listdir1(output_dir) :
+    if os.path.exists(output_dir) and os.listdir1(output_dir):
         raise ValueError("({}) already exists and is not empty.".format(output_dir))
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -431,7 +441,7 @@ def trainBert(output_dir):
     num_labels = len(label_list) + 1
     train_examples = processor.get_train_examples("")
     num_train_optimization_steps = int(
-        len(train_examples) / train_batch_size / gradient_accumulation_steps) *num_train_epochs
+        len(train_examples) / train_batch_size / gradient_accumulation_steps) * num_train_epochs
     config = BertConfig.from_pretrained(bert_model, num_labels=num_labels, finetuning_task=task_name)
     model = Ner.from_pretrained(bert_model,
                                 from_tf=False,
@@ -520,6 +530,6 @@ def trainBert(output_dir):
     plt.legend(['Train'])
     plt.title('Train Loss')
     plt.show()
-    plt.savefig(output_dir+'/losses.png')
+    plt.savefig(output_dir + '/losses.png')
 
-#train("data/")
+# train("data/")
