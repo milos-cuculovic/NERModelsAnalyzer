@@ -421,7 +421,7 @@ def prediction(t,model_name):
     return prediction
 
 def trainBert(output_dir):
-    if os.path.exists(output_dir) and os.listdir1(output_dir) :
+    if os.path.exists(output_dir) and not os.listdir(output_dir):
         raise ValueError("({}) already exists and is not empty.".format(output_dir))
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
