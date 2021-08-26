@@ -95,7 +95,6 @@ class Ner(BertForTokenClassification):
         sequence_output = self.bert(input_ids, token_type_ids, attention_mask, head_mask=None)[0]
         batch_size, max_len, feat_dim = sequence_output.shape
         valid_output = torch.zeros(batch_size, max_len, feat_dim, dtype=torch.float32, device=device)
-        print(device)
         for i in range(batch_size):
             jj = -1
             for j in range(max_len):
@@ -406,7 +405,7 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, no_cuda,
     np.random.seed(seed)
     torch.manual_seed(seed)
 
-    if os.path.exists(output_dir) and os.listdir(output_dir) and do_train:
+    if os.path.exists(output_dir) and not os.listdir(output_dir) and do_train:
         raise ValueError("Output directory ({}) already exists and is not empty.".format(output_dir))
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
