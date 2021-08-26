@@ -405,7 +405,7 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, no_cuda,
     np.random.seed(seed)
     torch.manual_seed(seed)
 
-    if os.path.exists(output_dir) and not os.listdir(output_dir) and do_train:
+    if os.path.exists(output_dir) and os.listdir(output_dir) and do_train:
         raise ValueError("Output directory ({}) already exists and is not empty.".format(output_dir))
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
