@@ -61,13 +61,25 @@ def trainBERTModel(jsonfile, modelFile):
     # STEP FOUR REPLACE TRIGGER
     trigConll(os.path.abspath("train.txt"), trigger)
     trigConll(os.path.abspath("valid.txt"), trigger)
+    do_cuda = input("no cuda? y or n")
+    global device
+    if do_cuda == "y":
+        do_cuda = True
+        device = "cpu"
+    else:
+        do_cuda = False
+        device = "cuda"
     epoch = input("num epoch")
-    trainBert(modelFile, 32, True, int(epoch), False)
+    trainBert(modelFile, 32, True, int(epoch), do_cuda, False)
 
 
 def evaluation(modelFile):
-
-    trainBert(modelFile, 32, False, 1, True)
+    cud=input("model trained without cuda? yor n")
+    if(cud=="y"):
+        cud=True
+    else:
+        cud=False
+    trainBert(modelFile, 32, False, 1, cud, True)
 
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
@@ -82,8 +94,8 @@ class Ner(BertForTokenClassification):
                 attention_mask_label=None):
         sequence_output = self.bert(input_ids, token_type_ids, attention_mask, head_mask=None)[0]
         batch_size, max_len, feat_dim = sequence_output.shape
-        valid_output = torch.zeros(batch_size, max_len, feat_dim, dtype=torch.float32, device="cpu")
-
+        valid_output = torch.zeros(batch_size, max_len, feat_dim, dtype=torch.float32, device=device)
+        print(device)
         for i in range(batch_size):
             jj = -1
             for j in range(max_len):
@@ -369,12 +381,11 @@ fp16_opt_level = 'O1'
 eval_on = "dev"
 
 
-def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, do_eval):
-    no_cuda=False
+def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, no_cuda, do_eval):
     processors = {"ner": NerProcessor}
 
-    if local_rank == -1:
-        device = torch.device("cpu")
+    if local_rank == -1 or no_cuda:
+        device = torch.device("cuda" if torch.cuda.is_available() and not no_cuda else "cpu")
         n_gpu = torch.cuda.device_count()
     # else:
     #     torch.cuda.set_device(args.local_rank)
@@ -602,5 +613,6 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, do_eval)
             logger.info("***** Eval results *****")
             logger.info("\n%s", report)
             writer.write(report)
-
+    print("l")
 # train("data/")
+
