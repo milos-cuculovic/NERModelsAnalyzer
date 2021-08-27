@@ -50,10 +50,14 @@ def test_model_manually(model_path):
     testSpacyModel(model_path, number_of_testing_examples)
 
 def test_model_dataset(model_name):
-    choice = input("1:berteval 0:else")
+    choice = input("1: BERT; 2:SpaCy: ")
     if choice == "1":
-        valid_path = ''
-        evaluation(valid_path, model_name)
+        useCuda = input("Use Cuda? (y or n, default n): ")
+        if useCuda == "y":
+            useCuda = True
+        else:
+            useCuda = False
+        evaluation(model_name, useCuda)
     else:
         #model_path = os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + model_name
         LABEL = ['LOCATION', 'CONTENT', 'TRIGGER', 'MODAL', 'ACTION']
@@ -112,5 +116,5 @@ if __name__ == '__main__':
                     print(prediction(text, model_name))
 
             else:
-                train_model("1", os.path.dirname(os.path.abspath(__file__)) + '/trained_models/1_default')
+                train_model("1", os.path.dirname(os.path.abspath(__file__)) + '/trained_models/1_default', useCuda)
 

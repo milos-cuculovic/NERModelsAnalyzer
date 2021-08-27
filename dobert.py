@@ -75,13 +75,8 @@ def trainBERTModel(jsonfile, modelFile, nIter, use_cuda):
     trainBert(modelFile, 32, True, int(nIter), use_cuda, False)
 
 
-def evaluation(modelFile):
-    cud=input("model trained without cuda? yor n")
-    if(cud=="y"):
-        cud=True
-    else:
-        cud=False
-    trainBert(modelFile, 32, False, 1, cud, True)
+def evaluation(modelFile, use_cuda):
+    trainBert(modelFile, 32, False, 1, use_cuda, True)
 
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
@@ -324,7 +319,7 @@ def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer
 
 def pip_aggregation(model_name, pathdirectory):
     model_path = os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + model_name
-    mode = AutoModelForTokenClassification.from_pretrained(model_path)
+    mode = AutoModelForTokenClassification.from_pretrained(model_path, proxies=proxies)
     tokenize = BertTokenizer.from_pretrained(model_path)
     nlp_ner = pipeline(
         "ner",
@@ -382,11 +377,11 @@ fp16_opt_level = 'O1'
 eval_on = "dev"
 
 
-def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, no_cuda, do_eval):
+def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda, do_eval):
     processors = {"ner": NerProcessor}
 
-    if local_rank == -1 or no_cuda:
-        device = torch.device("cuda" if torch.cuda.is_available() and not no_cuda else "cpu")
+    if local_rank == -1 or use_cuda:
+        device = torch.device("cuda" if torch.cuda.is_available() and use_cuda else "cpu")
         n_gpu = torch.cuda.device_count()
     # else:
     #     torch.cuda.set_device(args.local_rank)
@@ -438,6 +433,9 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, no_cuda,
 
     if local_rank == 0:
         torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab
+
+    if (use_cuda):
+        model.cuda()
 
     model.to(device)
 
@@ -550,6 +548,9 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, no_cuda,
         model = Ner.from_pretrained(output_dir)
         tokenizer = BertTokenizer.from_pretrained(output_dir, do_lower_case=do_lower_case)
 
+    if (use_cuda):
+        model.cuda()
+        2
     model.to(device)
 
     if do_eval and (local_rank == -1 or torch.distributed.get_rank() == 0):
