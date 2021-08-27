@@ -61,16 +61,17 @@ def trainBERTModel(jsonfile, modelFile):
     # STEP FOUR REPLACE TRIGGER
     trigConll(os.path.abspath("train.txt"), trigger)
     trigConll(os.path.abspath("valid.txt"), trigger)
-    do_cuda = input("no cuda? y or n")
+    use_cuda = input("Use Cuda? (y or n, default n): ")
     global device
-    if do_cuda == "y":
-        do_cuda = True
-        device = "cpu"
-    else:
-        do_cuda = False
+    if use_cuda == "y":
+        use_cuda = True
         device = "cuda"
-    epoch = input("num epoch")
-    trainBert(modelFile, 32, True, int(epoch), do_cuda, False)
+    else:
+        use_cuda = False
+        device = "cpu"
+
+    epoch = input("Num epoch: ")
+    trainBert(modelFile, 32, True, int(epoch), use_cuda, False)
 
 
 def evaluation(modelFile):
