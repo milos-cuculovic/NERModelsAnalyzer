@@ -48,30 +48,31 @@ trigger = ['why', 'on the contrary', 'what', 'however', 'either', 'while', 'rath
 device = 'cpu'
 
 
-def trainBERTModel(jsonfile, modelFile):
+def trainBERTModel(jsonfile, modelFile, nIter, use_cuda):
     # INITIAL
     removEsc(os.path.abspath(jsonfile))
+
     # STEP ONE cross validation
     crossval(os.path.abspath(jsonfile), os.path.abspath(""))
+
     # STEP TWO remove sentence without action and location
     setenceMean(os.path.abspath("train1.json"))
+
     # STEP THREE convert json to conll
     json_conll(os.path.abspath("train1.json"), os.path.abspath(""), 'train.txt')
     json_conll(os.path.abspath("valid1.json"), os.path.abspath(""), 'valid.txt')
+
     # STEP FOUR REPLACE TRIGGER
     trigConll(os.path.abspath("train.txt"), trigger)
     trigConll(os.path.abspath("valid.txt"), trigger)
-    use_cuda = input("Use Cuda? (y or n, default n): ")
+
     global device
-    if use_cuda == "y":
-        use_cuda = True
+    if use_cuda == True:
         device = "cuda"
     else:
-        use_cuda = False
         device = "cpu"
 
-    epoch = input("Num epoch: ")
-    trainBert(modelFile, 32, True, int(epoch), use_cuda, False)
+    trainBert(modelFile, 32, True, int(nIter), use_cuda, False)
 
 
 def evaluation(modelFile):

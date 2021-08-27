@@ -9,7 +9,7 @@ from dobert import trainBERTModel, evaluation, prediction
 
 
 
-def train_model(model, modelFile):
+def train_model(model, modelFile, useCuda):
     LABEL = ['LOCATION', 'CONTENT', 'TRIGGER', 'MODAL', 'ACTION']
 
     ROOT_DIR = os.path.dirname(os.path.abspath('data.json'))
@@ -29,7 +29,7 @@ def train_model(model, modelFile):
     elif model == str(2):
         nlp = trainBiLSTMModel(path_train_data, LABEL, dropout, nIter, modelFile)
     elif model == str(3):
-        trainBERTModel(path_train_data_bert, modelFile)
+        trainBERTModel(path_train_data_bert, modelFile, nIter, useCuda)
         exit()
     else:
         exit("Wrong model selection")
@@ -81,11 +81,18 @@ def test_model_dataset(model_name):
 
 
 if __name__ == '__main__':
+    useCuda = False
     action_type = input("Action type: (1. Train; 2. Dataset Test; 3. Manual Test;): ")
     if action_type == str(1):
         model = input("Model (1. spaCy; 2. Bi-LSTM; 3. BERT): ")
         modelFile = input("Enter the Model name to save: ")
-        train_model(model, os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + modelFile)
+        if model == "3":
+            useCuda = input("Use Cuda? (y or n, default n): ")
+            if useCuda == "y":
+                useCuda = True
+            else:
+                useCuda = False
+        train_model(model, os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + modelFile, useCuda)
     else:
         if action_type == str(2):
             model_name = input("Model name to test: ")
