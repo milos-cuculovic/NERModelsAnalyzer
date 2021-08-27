@@ -21,7 +21,6 @@ import os
 import random
 import spacy
 from spacy.util import minibatch, compounding
-from spacy.gold import GoldParse
 import warnings
 
 keras.utils.vis_utils.pydot = pyd

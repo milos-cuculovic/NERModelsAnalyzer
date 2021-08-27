@@ -13,7 +13,7 @@ from spacy import displacy
 from spacy.training import Example
 from thinc.api import SGD, RAdam, Adam
 
-"""
+
 def convertDoccanoToSpacy(path_csv, LABEL):
     datasets = []
     csv_file = csv.reader(open(path_csv, "r"), delimiter="	")
@@ -53,7 +53,7 @@ def convertDoccanoToSpacy(path_csv, LABEL):
             datasets.append(dataset)
 
     return datasets
-"""
+
 
 def convertJsonToSpacy(path_train_data, LABEL):
 
@@ -173,7 +173,7 @@ def trainSpacy(TRAIN_DATA, VALID_DATA, dropout, nIter, modelFile, model=None):
                         sgd=optimizer_radam,
                     )
                 except Exception as error:
-                    print(error)
+                    #print(error)
                     continue
 
             print("Losses train", losses_train)
@@ -189,7 +189,7 @@ def trainSpacy(TRAIN_DATA, VALID_DATA, dropout, nIter, modelFile, model=None):
                         losses=losses_valid
                     )
                 except Exception as error:
-                    print(error)
+                    #print(error)
                     continue
 
             nlp.use_params(optimizer_radam.averages)

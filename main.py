@@ -43,7 +43,6 @@ def train_model(model, modelFile):
     plt.xlabel('Epochs')
     plt.ylabel('Loss')
     plt.savefig(modelFile + '/losses_graph.png')
-    plt.show()
 
 
 def test_model_manually(model_path):
