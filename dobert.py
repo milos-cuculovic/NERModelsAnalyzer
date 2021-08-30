@@ -317,9 +317,10 @@ def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer
     return features
 
 
-def pip_aggregation(model_name, pathdirectory):
+def pip_aggregation(model_name, new_model_name):
     model_path = os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + model_name
-    mode = AutoModelForTokenClassification.from_pretrained(model_path, proxies=proxies)
+    new_model_path = os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + new_model_name
+    mode = AutoModelForTokenClassification.from_pretrained(model_path)
     tokenize = BertTokenizer.from_pretrained(model_path)
     nlp_ner = pipeline(
         "ner",
@@ -328,7 +329,7 @@ def pip_aggregation(model_name, pathdirectory):
         model=mode,
         tokenizer=tokenize
     )
-    nlp_ner.save_pretrained(pathdirectory)
+    nlp_ner.save_pretrained(new_model_path)
 
 
 def prediction(t, model_name):
@@ -380,15 +381,8 @@ eval_on = "dev"
 def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda, do_eval):
     processors = {"ner": NerProcessor}
 
-    if local_rank == -1 or use_cuda:
-        device = torch.device("cuda" if torch.cuda.is_available() and use_cuda else "cpu")
-        n_gpu = torch.cuda.device_count()
-    # else:
-    #     torch.cuda.set_device(args.local_rank)
-    #     device = torch.device("cuda", args.local_rank)
-    #     n_gpu = 1
-    #     # Initializes the distributed backend which will take care of sychronizing nodes/GPUs
-    #     torch.distributed.init_process_group(backend='nccl')
+    n_gpu = torch.cuda.device_count()
+
     logger.info("device: {} n_gpu: {}, distributed training: {}, 16-bits training: {}".format(
         device, n_gpu, bool(local_rank != -1), fp16))
 

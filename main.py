@@ -5,7 +5,7 @@ from dospacy import testSpacyModel
 from dospacy import evaluateSpacy
 from dobilstm import trainBiLSTMModel
 from datetime import datetime
-from dobert import trainBERTModel, evaluation, prediction
+from dobert import trainBERTModel, evaluation, prediction, pip_aggregation
 
 
 
@@ -88,8 +88,11 @@ if __name__ == '__main__':
     useCuda = False
     action_type = input("Action type: (1. Train; 2. Dataset Test; 3. Manual Test;): ")
     if action_type == str(1):
-        model = input("Model (1. spaCy; 2. Bi-LSTM; 3. BERT): ")
+        model = input("Model (1. spaCy; 2. Bi-LSTM; 3. BERT; 4. BERT-pip_aggregation): ")
         modelFile = input("Enter the Model name to save: ")
+        if model == "4":
+            pip_aggregation(modelFile, modelFile + "_pip_aggregation")
+            exit()
         if model == "3":
             useCuda = input("Use Cuda? (y or n, default n): ")
             if useCuda == "y":
