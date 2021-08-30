@@ -9,7 +9,7 @@ from dobert import trainBERTModel, evaluation, prediction, pip_aggregation
 
 
 
-def train_model(model, modelFile, useCuda):
+def train_model(model, output_dir, useCuda, spacy_model_type = "1"):
     LABEL = ['LOCATION', 'CONTENT', 'TRIGGER', 'MODAL', 'ACTION']
 
     ROOT_DIR = os.path.dirname(os.path.abspath('data.json'))
@@ -25,11 +25,11 @@ def train_model(model, modelFile, useCuda):
     print("Start time = ", current_time)
 
     if model == str(1):
-        nlp, plt = trainSpacyModel(path_train_data, path_valid_data, LABEL, dropout, nIter, modelFile)
+        nlp, plt = trainSpacyModel(path_train_data, path_valid_data, LABEL, dropout, nIter, spacy_model_type)
     elif model == str(2):
-        nlp = trainBiLSTMModel(path_train_data, LABEL, dropout, nIter, modelFile)
+        nlp = trainBiLSTMModel(path_train_data, LABEL, dropout, nIter, output_dir)
     elif model == str(3):
-        trainBERTModel(path_train_data_bert, modelFile, nIter, useCuda)
+        trainBERTModel(path_train_data_bert, output_dir, nIter, useCuda)
         exit()
     else:
         exit("Wrong model selection")
@@ -39,10 +39,10 @@ def train_model(model, modelFile, useCuda):
     print("End time = ", current_time)
 
     # Save the trained Model
-    nlp.to_disk(modelFile)
+    nlp.to_disk(output_dir)
     plt.xlabel('Epochs')
     plt.ylabel('Loss')
-    plt.savefig(modelFile + '/losses_graph.png')
+    plt.savefig(output_dir + '/losses_graph.png')
 
 
 def test_model_manually(model_path):
@@ -86,6 +86,7 @@ def test_model_dataset(model_name):
 
 if __name__ == '__main__':
     useCuda = False
+    spacy_model_type = "1"
     action_type = input("Action type: (1. Train; 2. Dataset Test; 3. Manual Test;): ")
     if action_type == str(1):
         model = input("Model (1. spaCy; 2. Bi-LSTM; 3. BERT; 4. BERT-pip_aggregation): ")
@@ -99,7 +100,9 @@ if __name__ == '__main__':
                 useCuda = True
             else:
                 useCuda = False
-        train_model(model, os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + modelFile, useCuda)
+        if model == "1":
+            spacy_model_type = input("1. Blank; 2. en_core_web_trf; 3. en_core_web_sm (Default 1): ")
+        train_model(model, os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + modelFile, useCuda, spacy_model_type)
     else:
         if action_type == str(2):
             model_name = input("Model name to test: ")
@@ -119,5 +122,5 @@ if __name__ == '__main__':
                     print(prediction(text, model_name))
 
             else:
-                train_model("1", os.path.dirname(os.path.abspath(__file__)) + '/trained_models/1_default', useCuda)
+                train_model("1", os.path.dirname(os.path.abspath(__file__)) + '/trained_models/1_default', useCuda, spacy_model_type)
 

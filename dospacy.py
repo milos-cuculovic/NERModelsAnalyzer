@@ -12,7 +12,7 @@ from spacy.scorer import Scorer
 from spacy import displacy
 from spacy.training import Example
 from thinc.api import SGD, RAdam, Adam
-
+from tqdm.auto import tqdm
 
 def convertDoccanoToSpacy(path_csv, LABEL):
     datasets = []
@@ -78,7 +78,16 @@ def convertJsonToSpacy(path_train_data, LABEL):
 
     return TRAINING_DATA
 
-def trainSpacy(TRAIN_DATA, VALID_DATA, dropout, nIter, modelFile, model=None):
+def trainSpacy(TRAIN_DATA, VALID_DATA, dropout, nIter, spacy_model_type = None):
+
+    os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+    if spacy_model_type == "1":
+        model = None
+    elif spacy_model_type == "2":
+        model = "en_core_web_trf"
+    else:
+        model = "en_core_web_sm"
 
     """Load the model, set up the pipeline and train the entity recognizer."""
     if model is not None:
@@ -89,12 +98,10 @@ def trainSpacy(TRAIN_DATA, VALID_DATA, dropout, nIter, modelFile, model=None):
         print("Created blank 'en' model")
 
     #if "transformer" not in nlp.pipe_names:
-    #    nlp.add_pipe("transformer", last=True)
+    #   nlp.add_pipe("transformer")
 
     if "ner" not in nlp.pipe_names:
         nlp.add_pipe("ner", last=True)
-    else:
-        nlp = nlp.get_pipe("ner")
 
     # Add special case rule
     infixes = list(nlp.Defaults.infixes)
@@ -113,18 +120,17 @@ def trainSpacy(TRAIN_DATA, VALID_DATA, dropout, nIter, modelFile, model=None):
         examples_valid.append(Example.from_dict(nlp.make_doc(text), annotations))
 
     # get names of other pipes to disable them during training
-    #pipe_exceptions = ["ner", "tagger", "parser", "trf_wordpiecer", "trf_tok2vec"]
-    other_pipes = [pipe for pipe in nlp.pipe_names if pipe != "ner"]
+    pipe_exceptions = ["transformer", "ner"]
+    other_pipes = [pipe for pipe in nlp.pipe_names if pipe not in pipe_exceptions]
 
     #only train NER
-    with nlp.disable_pipes(*other_pipes), warnings.catch_warnings():
-        # show warnings for misaligned entity spans once
-        warnings.filterwarnings("once", category=UserWarning, module='spacy')
 
-        # reset and initialize the weights randomly – but only if we're
-        # training a new model
+    with nlp.disable_pipes(*other_pipes):
+
+        # reset and initialize the weights randomly – but only if we're training a new model
         if model is None:
-            #optimizer_default = nlp.initialize()
+            nlp.initialize()
+            # optimizer_default = nlp.initialize()
             optimizer_adam = Adam(
                 learn_rate=0.001,
                 beta1=0.9,
@@ -152,11 +158,14 @@ def trainSpacy(TRAIN_DATA, VALID_DATA, dropout, nIter, modelFile, model=None):
                 use_averages=True,
             )
 
-            #optimizer_lambda = nlp.initialize(lambda: examples)
+            # optimizer_lambda = nlp.initialize(lambda: examples)
 
-            nlp.initialize()
-            losses_train_history = []
-            losses_valid_history = []
+            nlp.use_params(optimizer_radam.averages)
+        else:
+            nlp.create_optimizer()
+
+        losses_train_history = []
+        losses_valid_history = []
 
         for itn in range(nIter):
             print("Iteration " + str(itn))
@@ -164,16 +173,23 @@ def trainSpacy(TRAIN_DATA, VALID_DATA, dropout, nIter, modelFile, model=None):
             losses_train = {}
 
             batches = minibatch(examples_train, size=compounding(4.0, 32.0, 1.001))
-            for batch in batches:
+            for batch in tqdm(batches):
                 try:
-                    nlp.update(
-                        batch,
-                        drop=dropout,  # dropout - make it harder to memorise data
-                        losses=losses_train,
-                        sgd=optimizer_radam,
-                    )
+                    if model is None:
+                        nlp.update(
+                            batch,
+                            drop=dropout,  # dropout - make it harder to memorise data
+                            losses=losses_train,
+                            sgd=optimizer_radam,
+                        )
+                    else:
+                        nlp.update(
+                            batch,
+                            drop=dropout,  # dropout - make it harder to memorise data
+                            losses=losses_train
+                        )
                 except Exception as error:
-                    #print(error)
+                    print(error)
                     continue
 
             print("Losses train", losses_train)
@@ -189,10 +205,8 @@ def trainSpacy(TRAIN_DATA, VALID_DATA, dropout, nIter, modelFile, model=None):
                         losses=losses_valid
                     )
                 except Exception as error:
-                    #print(error)
+                    print(error)
                     continue
-
-            nlp.use_params(optimizer_radam.averages)
 
             print("Losses valid", losses_valid)
             losses_valid_history.append(losses_valid['ner'])
@@ -262,11 +276,11 @@ def testSpacyModel(model_name, number_of_testing_examples):
             print(ent.text, ent.label_)
 
 
-def trainSpacyModel(path_train_data, path_valid_data, LABEL, dropout, nIter, modelFile):
+def trainSpacyModel(path_train_data, path_valid_data, LABEL, dropout, nIter, spacy_model_type):
     TRAIN_DATA = convertJsonToSpacy(path_train_data, LABEL)
     VALID_DATA = convertJsonToSpacy(path_valid_data, LABEL)
 
-    nlp, plt = trainSpacy(TRAIN_DATA, VALID_DATA, dropout, nIter, modelFile)
+    nlp, plt = trainSpacy(TRAIN_DATA, VALID_DATA, dropout, nIter, spacy_model_type)
 
     return nlp, plt
 

@@ -48,7 +48,7 @@ trigger = ['why', 'on the contrary', 'what', 'however', 'either', 'while', 'rath
 device = 'cpu'
 
 
-def trainBERTModel(jsonfile, modelFile, nIter, use_cuda):
+def trainBERTModel(jsonfile, output_dir, nIter, use_cuda):
     # INITIAL
     removEsc(os.path.abspath(jsonfile))
 
@@ -72,11 +72,11 @@ def trainBERTModel(jsonfile, modelFile, nIter, use_cuda):
     else:
         device = "cpu"
 
-    trainBert(modelFile, 32, True, int(nIter), use_cuda, False)
+    trainBert(output_dir, 32, True, int(nIter), use_cuda, False)
 
 
-def evaluation(modelFile, use_cuda):
-    trainBert(modelFile, 32, False, 1, use_cuda, True)
+def evaluation(output_dir, use_cuda):
+    trainBert(output_dir, 32, False, 1, use_cuda, True)
 
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
