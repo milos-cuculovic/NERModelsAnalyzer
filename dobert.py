@@ -28,22 +28,24 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader, TensorDataset, SequentialSampler, RandomSampler
 from torch.utils.data.distributed import DistributedSampler
 
+import torch.distributed as dist
+import torch.multiprocessing as mp
+import torch.nn as nn
+import torch.optim as optim
+from torch.nn.parallel import DistributedDataParallel as DDP
+
 from bertconf import removEsc, setenceMean, json_conll, trigConll, crossval
 
-trigger = ['why', 'on the contrary', 'what', 'however', 'either', 'while', 'rather', 'instead of', 'when', 'than',
-           'in order to', 'therefore', 'not only', 'afterwards', 'once again', 'or', 'in order to', 'in particular',
-           'also', 'if not', 'if not then', 'and', 'not only', 'does', 'albeit', 'because', 'is that', 'that',
-           'without', 'who',
-           'whether', 'is it', 'was it', 'such as', 'were they', 'are they', 'thus', 'again', 'given that', 'given the',
-           'how many', 'except', 'nor', 'both', 'whose', 'especialls', 'for instance', 'is this', 'similarly',
-           'were there',
-           'are there', 'is there', 'for the time being', 'based on', 'in particular', 'as currently', 'perhaps',
-           'once',
-           'how', 'otherwise', 'particularly', 'overall', 'although', 'prior to', 'At the same time',
-           'neither', 'apart from', 'besides from', 'if necessary', 'hence', 'how much', 'by doing so', 'since',
-           'how less'
-           'despite', 'accordingly', 'etc', 'always', 'what kind', 'unless', 'which one', 'if not', 'if so', 'even if',
-           'not just', 'not only', 'besides', 'after all', 'generally', 'similar to', 'too', 'like']
+trigger = ['why', 'on the contrary','what','however','either','while','rather','instead of', 'when',
+         'in order to','therefore','not only', 'afterwards','once again','or','in order to','in particular',
+         'also','if not','if not then','not only','does','albeit','because','is that','that','without','who',
+         'whether','is it', 'was it','such as','were they','are they','thus','again','given that','given the',
+         'how many','except','nor','both','whose','especialls','for instance','is this','similarly','were there',
+         'are there','is there','for the time being','based on','in particular','as currently','perhaps','once',
+         'how','otherwise','particularly','overall','although','prior to','At the same time',
+         'neither','apart from','besides from','if necessary','hence','how much','by doing so','since','how less'
+         'despite','accordingly','etc','always','what kind','unless','which one','if not','if so','even if',
+         'not just','not only','besides','after all','generally','similar to','too','like']
 
 device = 'cpu'
 
@@ -345,18 +347,31 @@ def prediction(t, model_name):
     label_list = ["O", "B-LOCATION", "I-LOCATION", "B-TRIGGER", "I-TRIGGER",
                   "B-MODAL", "I-MODAL", "B-ACTION", "I-ACTION", "B-CONTENT", "I-CONTENT", "[CLS]", "[SEP]"]
 
+    #label_list = ["B-LOCATION", "I-LOCATION", "B-TRIGGER", "I-TRIGGER",
+    #              "B-MODAL", "I-MODAL", "B-ACTION", "I-ACTION", "B-CONTENT", "I-CONTENT"]
+
     prediction = []
+    initial = True
     for dic in nlp_ner(t):
-        dicINT = {}
         label = dic['entity']
         index = label.find("_") + 1
         number = label[index:]
         pos = int(number) - 1
-        dicINT['entity'] = label_list[pos]
-        dicINT['word'] = dic['word']
-        dicINT['score'] = dic['score']
-        prediction.append(dicINT)
+        label_name = label_list[pos]
 
+        if label_name in ("O", "[CLS]", "[SEP]"):
+            continue
+
+        if label_name[0] == "B":
+            if initial == False:
+                prediction.append(dicINT)
+            dicINT = {}
+            dicINT[label_name[2:]] = dic['word']
+            initial = False
+        else:
+            dicINT[label_name[2:]] += " " + dic['word']
+
+    prediction.append(dicINT)
     return prediction
 
 
@@ -366,7 +381,7 @@ gradient_accumulation_steps = 1
 train_batch_size = 32
 seed = 42
 weight_decay = 0.01
-learning_rate = 5e-5
+learning_rate = 2e-5
 warmup_proportion = 0.1
 eval_batch_size = 8
 bert_model = "bert-base-cased"
@@ -376,6 +391,8 @@ max_seq_length = 128
 do_lower_case = "store_true"
 fp16_opt_level = 'O1'
 eval_on = "dev"
+b1 = 0.9
+b2 = 0.999
 
 
 def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda, do_eval):
@@ -441,7 +458,7 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
         {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
     ]
     warmup_steps = int(warmup_proportion * num_train_optimization_steps)
-    optimizer = AdamW(optimizer_grouped_parameters, lr=learning_rate, eps=adam_epsilon)
+    optimizer = AdamW(optimizer_grouped_parameters, lr=learning_rate, betas=(b1, b2), eps=adam_epsilon)
     scheduler = WarmupLinearSchedule(optimizer, warmup_steps=warmup_steps, t_total=num_train_optimization_steps)
 
     # multi-gpu training (should be after apex fp16 initialization)
@@ -611,4 +628,6 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
             writer.write(report)
     print("l")
 # train("data/")
+
+#pip_aggregation("2_see_text_conf_500", "2_see_text_conf_500_aggregation")
 

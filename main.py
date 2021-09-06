@@ -18,7 +18,7 @@ def train_model(model, output_dir, useCuda, spacy_model_type = "1"):
     path_valid_data = os.path.join(ROOT_DIR, 'data_valid_full.json')
 
     dropout = 1e-5
-    nIter   = 1
+    nIter   = 3
 
     now = datetime.now()
     current_time = now.strftime("%H:%M:%S")
@@ -117,7 +117,7 @@ if __name__ == '__main__':
                     test_model_manually(model_path)
                 elif model == "2":
                     model_name = input("Model name to test: ")
-                    text = input("text to predict: ")
+                    text = input("Enter your testing text: ")
 
                     print(prediction(text, model_name))
 

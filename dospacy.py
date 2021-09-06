@@ -1,4 +1,4 @@
-import warnings
+import csv
 
 import numpy as np
 import spacy
@@ -120,14 +120,15 @@ def trainSpacy(TRAIN_DATA, VALID_DATA, dropout, nIter, spacy_model_type = None):
         examples_valid.append(Example.from_dict(nlp.make_doc(text), annotations))
 
     # get names of other pipes to disable them during training
-    pipe_exceptions = ["transformer", "ner"]
+    #pipe_exceptions = ["transformer", "ner"]
+    pipe_exceptions = ["ner"]
     other_pipes = [pipe for pipe in nlp.pipe_names if pipe not in pipe_exceptions]
 
     #only train NER
 
     with nlp.disable_pipes(*other_pipes):
 
-        # reset and initialize the weights randomly – but only if we're training a new model
+        # reset and initialize the weights randomly - but only if we're training a new model
         if model is None:
             nlp.initialize()
             # optimizer_default = nlp.initialize()
