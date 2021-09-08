@@ -27,14 +27,14 @@ from seqeval.metrics import classification_report
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, TensorDataset, SequentialSampler, RandomSampler
 from torch.utils.data.distributed import DistributedSampler
-
+from nltk import word_tokenize
 import torch.distributed as dist
 import torch.multiprocessing as mp
 import torch.nn as nn
 import torch.optim as optim
 from torch.nn.parallel import DistributedDataParallel as DDP
 
-from bertconf import removEsc, setenceMean, json_conll, trigConll, crossval
+from bertconf import removEsc, sentenceMean, json_conll, trigConll, crossval
 
 trigger = ['why', 'on the contrary','what','however','either','while','rather','instead of', 'when',
          'in order to','therefore','not only', 'afterwards','once again','or','in order to','in particular',
@@ -47,6 +47,107 @@ trigger = ['why', 'on the contrary','what','however','either','while','rather','
          'despite','accordingly','etc','always','what kind','unless','which one','if not','if so','even if',
          'not just','not only','besides','after all','generally','similar to','too','like']
 
+class BertNer(BertForTokenClassification):
+
+    def forward(self, input_ids, token_type_ids=None, attention_mask=None, valid_ids=None):
+        sequence_output = self.bert(input_ids, token_type_ids, attention_mask, head_mask=None)[0]
+        batch_size,max_len,feat_dim = sequence_output.shape
+        valid_output = torch.zeros(batch_size,max_len,feat_dim,dtype=torch.float32,device='cuda' if torch.cuda.is_available() else 'cpu')
+        for i in range(batch_size):
+            jj = -1
+            for j in range(max_len):
+                    if valid_ids[i][j].item() == 1:
+                        jj += 1
+                        valid_output[i][jj] = sequence_output[i][j]
+        sequence_output = self.dropout(valid_output)
+        logits = self.classifier(sequence_output)
+        return logits
+
+class Ner:
+
+    def __init__(self,model_dir: str):
+        self.model , self.tokenizer, self.model_config = self.load_model(model_dir)
+        self.label_map = self.model_config["label_map"]
+        self.max_seq_length = self.model_config["max_seq_length"]
+        self.label_map = {int(k):v for k,v in self.label_map.items()}
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.model = self.model.to(self.device)
+        self.model.eval()
+
+    def load_model(self, model_dir: str, model_config: str = "model_config.json"):
+        model_config = os.path.join(model_dir,model_config)
+        model_config = json.load(open(model_config))
+        model = BertNer.from_pretrained(model_dir)
+        tokenizer = BertTokenizer.from_pretrained(model_dir, do_lower_case=model_config["do_lower"])
+        return model, tokenizer, model_config
+
+    def tokenize(self, text: str):
+        """ tokenize input"""
+        words = word_tokenize(text)
+        tokens = []
+        valid_positions = []
+        for i,word in enumerate(words):
+            token = self.tokenizer.tokenize(word)
+            tokens.extend(token)
+            for i in range(len(token)):
+                if i == 0:
+                    valid_positions.append(1)
+                else:
+                    valid_positions.append(0)
+        return tokens, valid_positions
+
+    def preprocess(self, text: str):
+        """ preprocess """
+        tokens, valid_positions = self.tokenize(text)
+        ## insert "[CLS]"
+        tokens.insert(0,"[CLS]")
+        valid_positions.insert(0,1)
+        ## insert "[SEP]"
+        tokens.append("[SEP]")
+        valid_positions.append(1)
+        segment_ids = []
+        for i in range(len(tokens)):
+            segment_ids.append(0)
+        input_ids = self.tokenizer.convert_tokens_to_ids(tokens)
+        input_mask = [1] * len(input_ids)
+        while len(input_ids) < self.max_seq_length:
+            input_ids.append(0)
+            input_mask.append(0)
+            segment_ids.append(0)
+            valid_positions.append(0)
+        return input_ids,input_mask,segment_ids,valid_positions
+
+    def predict(self, text: str):
+        input_ids,input_mask,segment_ids,valid_ids = self.preprocess(text)
+        input_ids = torch.tensor([input_ids],dtype=torch.long,device=self.device)
+        input_mask = torch.tensor([input_mask],dtype=torch.long,device=self.device)
+        segment_ids = torch.tensor([segment_ids],dtype=torch.long,device=self.device)
+        valid_ids = torch.tensor([valid_ids],dtype=torch.long,device=self.device)
+        with torch.no_grad():
+            logits = self.model(input_ids, segment_ids, input_mask,valid_ids)
+        logits = F.softmax(logits,dim=2)
+        logits_label = torch.argmax(logits,dim=2)
+        logits_label = logits_label.detach().cpu().numpy().tolist()[0]
+
+        logits_confidence = [values[label].item() for values,label in zip(logits[0],logits_label)]
+
+        logits = []
+        pos = 0
+        for index,mask in enumerate(valid_ids[0]):
+            if index == 0:
+                continue
+            if mask == 1:
+                logits.append((logits_label[index-pos],logits_confidence[index-pos]))
+            else:
+                pos += 1
+        logits.pop()
+
+        labels = [(self.label_map[label],confidence) for label,confidence in logits]
+        words = word_tokenize(text)
+        assert len(labels) == len(words)
+        output = [{"word":word,"tag":label,"confidence":confidence} for word,(label,confidence) in zip(words,labels)]
+        return output
+
 device = 'cpu'
 
 
@@ -58,7 +159,7 @@ def trainBERTModel(jsonfile, output_dir, nIter, use_cuda):
     crossval(os.path.abspath(jsonfile), os.path.abspath(""))
 
     # STEP TWO remove sentence without action and location
-    setenceMean(os.path.abspath("train1.json"))
+    sentenceMean(os.path.abspath("train1.json"))
 
     # STEP THREE convert json to conll
     json_conll(os.path.abspath("train1.json"), os.path.abspath(""), 'train.txt')
@@ -85,38 +186,6 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message
                     datefmt='%m/%d/%Y %H:%M:%S',
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-
-class Ner(BertForTokenClassification):
-
-    def forward(self, input_ids, token_type_ids=None, attention_mask=None, labels=None, valid_ids=None,
-                attention_mask_label=None):
-        sequence_output = self.bert(input_ids, token_type_ids, attention_mask, head_mask=None)[0]
-        batch_size, max_len, feat_dim = sequence_output.shape
-        valid_output = torch.zeros(batch_size, max_len, feat_dim, dtype=torch.float32, device=device)
-        for i in range(batch_size):
-            jj = -1
-            for j in range(max_len):
-                if valid_ids[i][j].item() == 1:
-                    jj += 1
-                    valid_output[i][jj] = sequence_output[i][j]
-        sequence_output = self.dropout(valid_output)
-        logits = self.classifier(sequence_output)
-
-        if labels is not None:
-            loss_fct = nn.CrossEntropyLoss(ignore_index=0)
-            # Only keep active parts of the loss
-            # attention_mask_label = None
-            if attention_mask_label is not None:
-                active_loss = attention_mask_label.view(-1) == 1
-                active_logits = logits.view(-1, self.num_labels)[active_loss]
-                active_labels = labels.view(-1)[active_loss]
-                loss = loss_fct(active_logits, active_labels)
-            else:
-                loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
-            return loss
-        else:
-            return logits
 
 
 class InputExample(object):
@@ -349,7 +418,7 @@ def prediction(t, model_name):
 
     #label_list = ["B-LOCATION", "I-LOCATION", "B-TRIGGER", "I-TRIGGER",
     #              "B-MODAL", "I-MODAL", "B-ACTION", "I-ACTION", "B-CONTENT", "I-CONTENT"]
-
+    print(nlp_ner(t))
     prediction = []
     initial = True
     for dic in nlp_ner(t):
@@ -390,7 +459,6 @@ max_grad_norm = 1.0
 max_seq_length = 128
 do_lower_case = "store_true"
 fp16_opt_level = 'O1'
-eval_on = "dev"
 b1 = 0.9
 b2 = 0.999
 
@@ -561,14 +629,12 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
 
     if (use_cuda):
         model.cuda()
-        2
     model.to(device)
 
     if do_eval and (local_rank == -1 or torch.distributed.get_rank() == 0):
-        if eval_on == "dev":
-            eval_examples = processor.get_dev_examples("")
-        else:
-            raise ValueError("eval on dev  set only")
+
+        eval_examples = processor.get_dev_examples("")
+        eval_examples = processor.get_dev_examples("")
         eval_features = convert_examples_to_features(eval_examples, label_list, max_seq_length, tokenizer)
         logger.info("***** Running evaluation *****")
         logger.info("  Num examples = %d", len(eval_examples))
@@ -626,8 +692,6 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
             logger.info("***** Eval results *****")
             logger.info("\n%s", report)
             writer.write(report)
-    print("l")
-# train("data/")
 
-#pip_aggregation("2_see_text_conf_500", "2_see_text_conf_500_aggregation")
+
 
