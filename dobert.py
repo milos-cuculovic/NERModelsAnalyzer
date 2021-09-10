@@ -47,6 +47,40 @@ trigger = ['why', 'on the contrary','what','however','either','while','rather','
          'despite','accordingly','etc','always','what kind','unless','which one','if not','if so','even if',
          'not just','not only','besides','after all','generally','similar to','too','like']
 
+
+
+class Nertrain(BertForTokenClassification):
+
+    def forward(self, input_ids, token_type_ids=None, attention_mask=None, labels=None, valid_ids=None,
+                attention_mask_label=None):
+        sequence_output = self.bert(input_ids, token_type_ids, attention_mask, head_mask=None)[0]
+        batch_size, max_len, feat_dim = sequence_output.shape
+        valid_output = torch.zeros(batch_size, max_len, feat_dim, dtype=torch.float32, device=device)
+        for i in range(batch_size):
+            jj = -1
+            for j in range(max_len):
+                if valid_ids[i][j].item() == 1:
+                    jj += 1
+                    valid_output[i][jj] = sequence_output[i][j]
+        sequence_output = self.dropout(valid_output)
+        logits = self.classifier(sequence_output)
+
+        if labels is not None:
+            loss_fct = nn.CrossEntropyLoss(ignore_index=0)
+            # Only keep active parts of the loss
+            # attention_mask_label = None
+            if attention_mask_label is not None:
+                active_loss = attention_mask_label.view(-1) == 1
+                active_logits = logits.view(-1, self.num_labels)[active_loss]
+                active_labels = labels.view(-1)[active_loss]
+                loss = loss_fct(active_logits, active_labels)
+            else:
+                loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
+            return loss
+        else:
+            return logits
+
+
 class BertNer(BertForTokenClassification):
 
     def forward(self, input_ids, token_type_ids=None, attention_mask=None, valid_ids=None):
@@ -524,7 +558,7 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
 
     # Prepare model
     config = BertConfig.from_pretrained(bert_model, num_labels=num_labels, finetuning_task=task_name)
-    model = BertNer.from_pretrained(bert_model, from_tf=False, config=config)
+    model = Nertrain.from_pretrained(bert_model, from_tf=False, config=config)
 
     if local_rank == 0:
         torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab
@@ -640,7 +674,7 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
         plt.savefig(output_dir + '/losses.png')
     else:
         # Load a trained model and vocabulary that you have fine-tuned
-        model = Ner.from_pretrained(output_dir)
+        model = Nertrain.from_pretrained(output_dir)
         tokenizer = BertTokenizer.from_pretrained(output_dir, do_lower_case=do_lower_case)
 
     if (use_cuda):
