@@ -524,7 +524,7 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
 
     # Prepare model
     config = BertConfig.from_pretrained(bert_model, num_labels=num_labels, finetuning_task=task_name)
-    model = Ner.from_pretrained(bert_model, from_tf=False, config=config)
+    model = BertNer.from_pretrained(bert_model, from_tf=False, config=config)
 
     if local_rank == 0:
         torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab
