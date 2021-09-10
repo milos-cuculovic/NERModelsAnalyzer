@@ -62,7 +62,7 @@ def removEsc(jsonpath):
         open_file.writelines(''.join(json_lines))
 
 
-def setenceMean(jsonpath):
+def sentenceMean(jsonpath):
     json_lines = []
     with open(jsonpath, 'r') as open_file:
         for line in open_file.readlines():
@@ -72,139 +72,6 @@ def setenceMean(jsonpath):
     with open(jsonpath, 'w') as open_file:
         open_file.writelines(''.join(json_lines))
 
-# Convert json to conll
-# def json_conllTRIG(jsonPath,conllPath,trigger):
-#     f = open(conllPath+'/conll.txt','w')
-#     with open(jsonPath) as fi:
-#         for jsonObj in fi:
-#             data = json.loads(jsonObj)
-#             listLABEL= data['array_agg']
-#             sentence= data['text']
-#             longS=len(sentence)
-#             incre=0
-#             wordd=""
-#             f.write("\n")
-#             while incre<longS:
-#                 deb=incre
-#                 if sentence[incre] in string.punctuation:
-#                     f.write(sentence[incre])
-#                     f.write(" ")
-#                     f.write("O")
-#                     f.write("\n")
-#                     incre=incre+1
-#                 deb=incre
-#                 while incre<longS and sentence[incre]!=" " and sentence[incre] not in string.punctuation :
-#                     wordd=wordd+sentence[incre]
-#                     incre=incre+1
-
-#                 if incre!=deb:
-#                     label="O"
-#                     for lab in listLABEL:
-#                         lab = lab.replace(',', "")
-#                         if deb >= int(lab.split()[0]):
-#                             if incre<= int(lab.split()[1]):
-#                                 label=lab.split()[2]
-#                     f.write(wordd)
-#                     f.write(" ")
-#                     # if label=="CONTENT":
-#                     #     label="O"
-#                     if wordd.lower() in trigger:
-#                         label="TRIGGER"
-#                     f.write(label)
-#                     f.write("\n")
-
-#                 if incre<longS:
-#                     if sentence[incre] in string.punctuation:
-#                         f.write(sentence[incre])
-#                         f.write(" ")
-#                         f.write("O")
-#                         f.write("\n")
-#                 incre=incre+1
-#                 wordd=""
-#     f.close()
-
-
-# Convert json to conll
-# def json_conllTRIGsent(jsonPath,conllPath,trigger):
-#     f = open(conllPath+'/conlltest.txt','w')
-#     with open(jsonPath) as fi:
-#         for jsonObj in fi:
-#             data = json.loads(jsonObj)
-#             listLABEL= data['array_agg']
-#             sentence= data['text']
-#             sentencelist=sentence.split()
-#             rest=0
-#             longS=len(sentence)
-#             incre=0
-#             wordd=""
-#             y=0
-#             f.write("\n")
-#             while incre<longS:
-#                 deb=incre
-#                 if sentence[incre] in string.punctuation:
-#                     f.write(sentence[incre])
-#                     f.write(" ")
-#                     f.write("O")
-#                     f.write("\n")
-#                     incre=incre+1
-#                     rest=0
-#                 deb=incre
-#                 while incre<longS and sentence[incre]!=" " and sentence[incre] not in string.punctuation :
-#                     wordd=wordd+sentence[incre]
-#                     incre=incre+1
-
-#                 if incre!=deb:
-#                     label="O"
-#                     for lab in listLABEL:
-#                         lab = lab.replace(',', "")
-#                         if deb >= int(lab.split()[0]):
-#                             if incre<= int(lab.split()[1]):
-#                                 label=lab.split()[2]
-#                     f.write(wordd)
-#                     f.write(" ")
-#                     for trig in trigger:
-#                         wordj=wordd.lower()
-#                         if wordj in trig:
-#                             print(sentencelist)
-#                             print(wordj)
-#                             if len(wordj)!=len(trig) and len(trig.split())>1:
-#                                 triglist=trig.split()
-#                                 if triglist[0]==wordj:
-#                                     numword=1
-#                                     while y+numword<len(sentencelist) and numword<len(triglist):
-#                                         if sentencelist[y+numword]==triglist[numword]:
-#                                             label="trigger"
-#                                             rest=len(triglist)-1
-#                                         else:
-#                                             numword=0
-#                                             rest=0
-#                                             break
-#                                         numword=numword+1
-#                                 elif rest!=0:
-#                                     numm=len(triglist)-rest
-#                                     print('num=')
-#                                     print(rest)
-#                                     print(len(triglist))
-#                                     print(triglist)
-#                                     if triglist[numm]==wordj:
-#                                         print(wordj)
-#                                         label="trigger"
-#                                         rest=rest-1
-#                             else:
-#                                 label="trigger"
-#                     f.write(label)
-#                     f.write("\n")
-#                 if incre<longS:
-#                     if sentence[incre] in string.punctuation:
-#                         y=y-1
-#                         f.write(sentence[incre])
-#                         f.write(" ")
-#                         f.write("O")
-#                         f.write("\n")
-#                 incre=incre+1
-#                 wordd=""
-#                 y=y+1
-#     f.close()
 
 # Convert json to conll
 def json_conll(jsonPath,conllPath,conlname):
@@ -231,6 +98,10 @@ def json_conll(jsonPath,conllPath,conlname):
                 deb=incre
                 while incre<longS and sentence[incre]!=" " and sentence[incre] not in string.punctuation :
                     wordd=wordd+sentence[incre]
+                    removeponct=['"',"-","(",")"]
+                    for let in removeponct:
+                        if let in wordd:
+                            wordd=wordd.replace(let,"")
                     incre=incre+1
 
                 if incre!=deb:
@@ -471,12 +342,6 @@ def shuffleFile(file1,file2,file3):
              sentencelist=listparagr(file1,rand )
              with open(file2,"w") as f2:
                 if lines2:
-                    # try:
-                    #    while True:
-                    #         lines2.remove('\n')
-                    # except ValueError:
-                    #     pass
-
                     for line2 in lines2:
                         f2.write(line2)
                 for sentence in sentencelist:
@@ -498,40 +363,3 @@ def shuffleFile(file1,file2,file3):
         f.close()
         return linesrest
 
-
-# # randomUndSamp("O", 10)
-# # INITIAL
-# removEsc(os.path.abspath("data-use1.json"))
-# # STEP ONE cross validation
-# crossval(os.path.abspath("data-use1.json"),os.path.abspath(""))
-# # # STEP TWO remove sentence without action and location
-# setenceMean(os.path.abspath("train1.json"))
-# # # STEP THREE convert json to conll
-# json_conll(os.path.abspath("train1.json"), os.path.abspath(""), 'train1.txt')
-# json_conll(os.path.abspath("test1.json"), os.path.abspath(""), 'test1.txt')
-# # # STEP FOUR REPLACE TRIGGER
-# trigConll(os.path.abspath("train1.txt"), trigger)
-# trigConll(os.path.abspath("test1.txt"), trigger)
-
-# trigger=findtriggerdict("/home/chams/Documents/mdpi/conlls.txt")
-# removeLab("O","/home/chams/Documents/mdpi/conll.txt","/home/chams/Documents/mdpi/conll2.txt")
-# removeLabParag("O","/home/chams/Documents/mdpi/conll.txt","/home/chams/Documents/mdpi/conllshuffle.txt",3)
-# shuffleFile('/home/chams/Documents/mdpi/train.txt', '/home/chams/Documents/mdpi/conllshuffle.txt','/home/chams/Documents/mdpi/datasetxt3.txt')
-# os.remove("/home/chams/Documents/mdpi/datasetxt3.txt")
-# print("TRIG")
-# print(countLab("TRIGGER","/home/chams/Documents/mdpi/conll.txt"))
-# print("O")
-# print(countLab("O","/home/chams/Documents/mdpi/conll.txt"))
-# print("loc")
-
-# print(countLab('LOCATION',"/home/chams/Documents/mdpi/conll.txt"))
-# print("modal")
-# print(countLab("MODAL","/home/chams/Documents/mdpi/conll.txt"))
-# print("action")
-# print(countLab("ACTION","/home/chams/Documents/mdpi/conll.txt"))
-# print("content")
-# print(countLab('CONTENT',"/home/chams/Documents/mdpi/conll.txt"))
-# # print(findtrigger("/home/chams/Documents/mdpi/conll.txt"))
-
-
-# print(numberofParaginAfile("/home/chams/Documents/mdpi/nomean/valid.txt"))

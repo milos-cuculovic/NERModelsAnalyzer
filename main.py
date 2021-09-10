@@ -5,7 +5,7 @@ from dospacy import testSpacyModel
 from dospacy import evaluateSpacy
 from dobilstm import trainBiLSTMModel
 from datetime import datetime
-from dobert import trainBERTModel, evaluation, prediction, pip_aggregation
+from dobert import trainBERTModel, evaluation, pip_aggregation, Ner, prediction
 
 
 
@@ -119,7 +119,13 @@ if __name__ == '__main__':
                     model_name = input("Model name to test: ")
                     text = input("Enter your testing text: ")
 
+
                     print(prediction(text, model_name))
+
+                    # model = Ner('trained_models/' + model_name+'/')
+                    # output = model.predict(text)
+                    # for prediction in output:
+                    #     print(prediction)
 
             else:
                 train_model("1", os.path.dirname(os.path.abspath(__file__)) + '/trained_models/1_default', useCuda, spacy_model_type)
