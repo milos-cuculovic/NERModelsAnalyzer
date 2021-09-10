@@ -352,26 +352,42 @@ def prediction(t, model_name):
 
     prediction = []
     initial = True
-    for dic in nlp_ner(t):
+    dicINT = {}
+    result = nlp_ner(t)
+
+    for dic in result:
         label = dic['entity']
         index = label.find("_") + 1
         number = label[index:]
         pos = int(number) - 1
         label_name = label_list[pos]
+        word = dic['word']
+
+        if word == "'":
+            label_name = "I-CONTENT"
 
         if label_name in ("O", "[CLS]", "[SEP]"):
             continue
 
-        if label_name[0] == "B":
+        if label_name[2:] in dicINT:
+            if "##" in word:
+                word = word.lstrip('##')
+                dicINT[label_name[2:]] += word
+            elif word == "'" or word == "s":
+                dicINT[label_name[2:]] += word
+            else:
+                dicINT[label_name[2:]] += " " + dic['word']
+        else:
             if initial == False:
                 prediction.append(dicINT)
-            dicINT = {}
+                dicINT = {}
             dicINT[label_name[2:]] = dic['word']
-            initial = False
-        else:
-            dicINT[label_name[2:]] += " " + dic['word']
+
+        initial = False
+
 
     prediction.append(dicINT)
+
     return prediction
 
 
