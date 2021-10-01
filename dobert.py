@@ -38,7 +38,7 @@ from bertconf import removEsc, sentenceMean, json_conll, trigConll, crossval
 
 trigger = ['why', 'on the contrary','what','however','either','while','rather','instead of', 'when',
          'in order to','therefore','not only', 'afterwards','once again','or','in order to','in particular',
-         'also','if not','if not then','not only','does','albeit','because','is that','that','without','who',
+         'also','if not','if not then','not only','albeit','because','is that','that','without','who',
          'whether','is it', 'was it','such as','were they','are they','thus','again','given that','given the',
          'how many','except','nor','both','whose','especialls','for instance','is this','similarly','were there',
          'are there','is there','for the time being','based on','in particular','as currently','perhaps','once',
@@ -507,7 +507,7 @@ bert_model = "bert-base-cased"
 adam_epsilon = 1e-8
 max_grad_norm = 1.0
 max_seq_length = 128
-do_lower_case = "store_true"
+do_lower_case = "store_false"
 fp16_opt_level = 'O1'
 b1 = 0.9
 b2 = 0.999
