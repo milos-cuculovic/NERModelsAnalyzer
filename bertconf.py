@@ -6,7 +6,6 @@ import json
 import torch
 import string
 import random
-import os
 from sklearn.model_selection import train_test_split, KFold
 
 trigger=['why', 'on the contrary','what','however','either','while','rather','instead of', 'when','than',
@@ -89,13 +88,13 @@ def json_conll(jsonPath,conllPath,conlname):
             prevlab=""
             while incre<longS:
                 deb=incre
-                if sentence[incre] in string.punctuation:
-                    f.write(sentence[incre])
-                    f.write(" ")
-                    f.write("O")
-                    f.write("\n")
-                    incre=incre+1
-                deb=incre
+                # if sentence[incre] in string.punctuation :
+                #     f.write(sentence[incre])
+                #     f.write(" ")
+                #     f.write("O")
+                #     f.write("\n")
+                #     incre=incre+1
+                # deb=incre
                 while incre<longS and sentence[incre]!=" " and sentence[incre] not in string.punctuation :
                     wordd=wordd+sentence[incre]
                     removeponct=['"',"-","(",")"]
