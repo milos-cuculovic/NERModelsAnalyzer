@@ -5,7 +5,7 @@ from dospacy import testSpacyModel
 from dospacy import evaluateSpacy
 from dobilstm import trainBiLSTMModel
 from datetime import datetime
-from dobert import trainBERTModel, evaluation, pip_aggregation, Ner, prediction
+from dobert import trainBERTModel, evaluation, pip_aggregation, Ner, prediction,trainBERTGrid
 
 
 
@@ -19,6 +19,7 @@ def train_model(model, output_dir, useCuda, spacy_model_type = "1"):
 
     dropout = 1e-5
     nIter   = 3
+    
 
     now = datetime.now()
     current_time = now.strftime("%H:%M:%S")
@@ -31,6 +32,8 @@ def train_model(model, output_dir, useCuda, spacy_model_type = "1"):
     elif model == str(3):
         trainBERTModel(path_train_data_bert, output_dir, nIter, useCuda)
         exit()
+    elif model==str(4):
+        trainBERTGrid(path_train_data_bert, output_dir, nIter, useCuda)
     else:
         exit("Wrong model selection")
 
@@ -87,7 +90,7 @@ def test_model_dataset(model_name):
 if __name__ == '__main__':
     useCuda = False
     spacy_model_type = "1"
-    action_type = input("Action type: (1. Train; 2. Dataset Test; 3. Manual Test;): ")
+    action_type = input("Action type: (1. Train; 2. Dataset Test; 3. Manual Test; 4.Grid search): ")
     if action_type == str(1):
         model = input("Model (1. spaCy; 2. Bi-LSTM; 3. BERT; 4. BERT-pip_aggregation): ")
         modelFile = input("Enter the Model name to save: ")
@@ -103,6 +106,14 @@ if __name__ == '__main__':
         if model == "1":
             spacy_model_type = input("1. Blank; 2. en_core_web_trf; 3. en_core_web_sm (Default 1): ")
         train_model(model, os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + modelFile, useCuda, spacy_model_type)
+    elif action_type==str(4):
+        modelFile = input("Enter the Model name to save: ")
+        useCuda = input("Use Cuda? (y or n, default n): ")
+        if useCuda == "y":
+                useCuda = True
+        else:
+                useCuda = False
+        train_model("4", os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + modelFile, useCuda, spacy_model_type)     
     else:
         if action_type == str(2):
             model_name = input("Model name to test: ")
@@ -119,7 +130,6 @@ if __name__ == '__main__':
                     model_name = input("Model name to test: ")
                     text = input("Enter your testing text: ")
 
-
                     print(prediction(text, model_name))
 
                     # model = Ner('trained_models/' + model_name+'/')
@@ -129,4 +139,3 @@ if __name__ == '__main__':
 
             else:
                 train_model("1", os.path.dirname(os.path.abspath(__file__)) + '/trained_models/1_default', useCuda, spacy_model_type)
-

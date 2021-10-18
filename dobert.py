@@ -33,7 +33,6 @@ import torch.multiprocessing as mp
 import torch.nn as nn
 import torch.optim as optim
 from torch.nn.parallel import DistributedDataParallel as DDP
-
 from bertconf import removEsc, sentenceMean, json_conll, trigConll, crossval
 
 trigger = ['why', 'on the contrary','what','however','either','while','rather','instead of', 'when',
@@ -210,7 +209,32 @@ def trainBERTModel(jsonfile, output_dir, nIter, use_cuda):
         device = "cpu"
 
     trainBert(output_dir, 32, True, int(nIter), use_cuda, False)
+    
+def trainBERTGrid(jsonfile, output_dir, nIter, use_cuda):
+    # INITIAL
+    removEsc(os.path.abspath(jsonfile))
 
+    # STEP ONE cross validation
+    crossval(os.path.abspath(jsonfile), os.path.abspath(""))
+
+    # STEP TWO remove sentence without action and location
+    sentenceMean(os.path.abspath("train1.json"))
+
+    # STEP THREE convert json to conll
+    json_conll(os.path.abspath("train1.json"), os.path.abspath(""), 'train.txt')
+    json_conll(os.path.abspath("valid1.json"), os.path.abspath(""), 'valid.txt')
+
+    # STEP FOUR REPLACE TRIGGER
+    trigConll(os.path.abspath("train.txt"), trigger)
+    trigConll(os.path.abspath("valid.txt"), trigger)
+
+    global device
+    if use_cuda == True:
+        device = "cuda"
+    else:
+        device = "cpu"
+
+    loopBerthyperparam(output_dir, int(nIter), use_cuda)
 
 def evaluation(output_dir, use_cuda):
     trainBert(output_dir, 32, False, 1, use_cuda, True)
@@ -334,6 +358,33 @@ class NerProcessor(DataProcessor):
         return examples
 
 
+local_rank = -1
+fp16 = 'store_true'
+gradient_accumulation_steps = 1
+seed = 42
+eval_batch_size = 8
+bert_model = "bert-base-cased"
+adam_epsilon = 1e-8
+max_grad_norm = 1.0
+max_seq_length = 128
+do_lower_case = "store_false"
+fp16_opt_level = 'O1'
+b1 = 0.9
+b2 = 0.999
+
+def loopBerthyperparam(output_dir,num_train_epochs,use_cuda):
+    weightdecay=[0.1,0.01,0.001,0.0001] #entre 0 et 0.1
+    learningrate=[2e-5,2.2e-5,2.4e-5,2.6e-5,2.8e-5,3e-5]
+    warmupproportion=[0.1]
+    trainbatchsize=[32,30,28,26,24,22,20,18,16]
+    i=0
+    for weight in weightdecay:
+        for learning in learningrate:
+            for warm in warmupproportion:
+                for trainbs in trainbatchsize:
+                    i+=1
+                    trainBert(output_dir, trainbs, True, num_train_epochs, use_cuda, True,i,
+                    learning,weight,warm)                    
 def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer):
     """Loads a data file into a list of `InputBatch`s."""
 
@@ -494,26 +545,11 @@ def prediction(t, model_name):
     return prediction
 
 
-local_rank = -1
-fp16 = 'store_true'
-gradient_accumulation_steps = 1
-train_batch_size = 32
-seed = 42
-weight_decay = 0.01
-learning_rate = 2e-5
-warmup_proportion = 0.1
-eval_batch_size = 8
-bert_model = "bert-base-cased"
-adam_epsilon = 1e-8
-max_grad_norm = 1.0
-max_seq_length = 128
-do_lower_case = "store_false"
-fp16_opt_level = 'O1'
-b1 = 0.9
-b2 = 0.999
 
 
-def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda, do_eval):
+
+def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda, do_eval,indexEval,
+              learning_rate,weight_decay,warmup_proportion):
     processors = {"ner": NerProcessor}
 
     n_gpu = torch.cuda.device_count()
@@ -530,7 +566,7 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-
+    output_dir=output_dir+str(indexEval)
     if os.path.exists(output_dir) and os.listdir(output_dir) and do_train:
         raise ValueError("Output directory ({}) already exists and is not empty.".format(output_dir))
     if not os.path.exists(output_dir):
@@ -737,9 +773,13 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
 
         report = classification_report(y_true, y_pred, digits=4)
         logger.info("\n%s", report)
-        output_eval_file = os.path.join(output_dir, "eval_results.txt")
+        output_eval_file = os.path.join(output_dir, "eval_results"+str(indexEval)+".txt")
         with open(output_eval_file, "w") as writer:
             logger.info("***** Eval results *****")
+            logger.info("weight_decay:"+str(weight_decay))
+            logger.info("learning_rate:"+str(learning_rate))
+            logger.info("warmup:"+str(warmup_proportion))
+            logger.info("train batch size:"+str(train_batch_size))
             logger.info("\n%s", report)
             writer.write(report)
 
