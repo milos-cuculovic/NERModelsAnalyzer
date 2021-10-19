@@ -122,7 +122,7 @@ if __name__ == '__main__':
 
                     print(prediction(text, model_name))
 
-                    # model = Ner('trained_models/' + model_name+'/')
+                    model = Ner('trained_models/' + model_name+'/')
                     # output = model.predict(text)
                     # for prediction in output:
                     #     print(prediction)

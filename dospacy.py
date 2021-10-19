@@ -73,6 +73,9 @@ def convertJsonToSpacy(path_train_data, LABEL):
 
         for e in entry['labels']:
             entities.append((e[0], e[1], e[2]))
+            if e[2] == 'LOCATION':
+                with open('locations.txt', 'a') as the_file:
+                    the_file.write((entry['text'][e[0]:e[1]]) + "\n")
         spacy_entry = (entry['text'], {"entities": entities})
         TRAINING_DATA.append(spacy_entry)
 
