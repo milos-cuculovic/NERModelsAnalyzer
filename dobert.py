@@ -208,7 +208,7 @@ def trainBERTModel(jsonfile, output_dir, nIter, use_cuda):
     else:
         device = "cpu"
 
-    trainBert(output_dir, 32, True, int(nIter), use_cuda, False)
+    trainBert(output_dir, 32, True, int(nIter), use_cuda, False,1,2e-5,0.01,0.1)
     
 def trainBERTGrid(jsonfile, output_dir, nIter, use_cuda):
     # INITIAL
@@ -237,7 +237,7 @@ def trainBERTGrid(jsonfile, output_dir, nIter, use_cuda):
     loopBerthyperparam(output_dir, int(nIter), use_cuda)
 
 def evaluation(output_dir, use_cuda):
-    trainBert(output_dir, 32, False, 1, use_cuda, True)
+    trainBert(output_dir, 32, False, 1, use_cuda, True,"",2e-5,0.01,0.1)
 
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
@@ -382,12 +382,42 @@ def loopBerthyperparam(output_dir,num_train_epochs,use_cuda):
     i=0
     list1_permutations = list(itertools.product(*hyperparam))
     for listtool in list1_permutations:
+        i+=1
         weight=listtool[0]
         learning=listtool[1]
         warm=listtool[2]
         trainbs=listtool[3]
         trainBert(output_dir, trainbs, True, num_train_epochs, use_cuda, True,i,
-                    learning,weight,warm)                    
+                    learning,weight,warm)  
+    compareauto(len(list1_permutations), output_dir)
+
+def compareauto(sizecombine,filename):
+    precision=[0,0]
+    recall=[0,0]
+    f1score=[0,0]
+    for i in range(1,sizecombine+1):
+       with open(filename+str(1)+"/eval_results.txt") as file:
+            for line in file:
+                line[0].split()
+                for line in file:
+                 # print(line)
+                     listword=line.split()
+                     if len(listword)>0:
+                         # print(listword)
+                         if listword[0]=="micro":
+                            if precision[1]<float(listword[2]):
+                                  precision[1]=float(listword[2])
+                                  precision[0]=i
+                            if recall[1]<float(listword[3]):
+                                  recall[1]=float(listword[3])
+                                  recall[0]=i
+                            if f1score[1]<float(listword[4]):
+                                  f1score[1]=float(listword[4])
+                                  f1score[0]=i
+    print("precision n "+str(precision[0]))
+    print("recall n "+str(recall[0]))
+    print("f1score n " +str(f1score[0]))
+                  
 def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer):
     """Loads a data file into a list of `InputBatch`s."""
 
@@ -773,10 +803,11 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
                     else:
                         temp_1.append(label_map[label_ids[i][j]])
                         temp_2.append(label_map[logits[i][j]])
+                        
 
         report = classification_report(y_true, y_pred, digits=4)
         logger.info("\n%s", report)
-        output_eval_file = os.path.join(output_dir, "eval_results"+str(indexEval)+".txt")
+        output_eval_file = os.path.join(output_dir, "eval_results.txt")
         with open(output_eval_file, "w") as writer:
             logger.info("***** Eval results *****")
             logger.info("weight_decay:"+str(weight_decay))
