@@ -374,10 +374,10 @@ b2 = 0.999
 import itertools
 
 def loopBerthyperparam(output_dir,num_train_epochs,use_cuda):
-    weightdecay=[0.1,0.01,0.001,0.0001] #entre 0 et 0.1
-    learningrate=[2e-5,2.2e-5,2.4e-5,2.6e-5,2.8e-5,3e-5]
+    weightdecay=[0.1] #entre 0 et 0.1
+    learningrate=[2e-5]
     warmupproportion=[0.1]
-    trainbatchsize=[32,30,28,26,24,22,20,18,16]
+    trainbatchsize=[32,30,28,26]
     hyperparam=[weightdecay,learningrate,warmupproportion,trainbatchsize]
     i=0
     list1_permutations = list(itertools.product(*hyperparam))
@@ -389,6 +389,7 @@ def loopBerthyperparam(output_dir,num_train_epochs,use_cuda):
         trainbs=listtool[3]
         trainBert(output_dir, trainbs, True, num_train_epochs, use_cuda, True,i,
                     learning,weight,warm)  
+    compareauto(len(list1_permutations), output_dir)
 
 def compareauto(sizecombine,filename):
     precision=[0,0]
@@ -806,7 +807,7 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
 
         report = classification_report(y_true, y_pred, digits=4)
         logger.info("\n%s", report)
-        output_eval_file = os.path.join(output_dir, "eval_results"+str(indexEval)+".txt")
+        output_eval_file = os.path.join(output_dir, "eval_results.txt")
         with open(output_eval_file, "w") as writer:
             logger.info("***** Eval results *****")
             logger.info("weight_decay:"+str(weight_decay))
