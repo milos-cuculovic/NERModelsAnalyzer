@@ -18,7 +18,7 @@ def train_model(model, output_dir, useCuda, spacy_model_type = "1"):
     path_valid_data = os.path.join(ROOT_DIR, 'data_valid_full.json')
 
     dropout = 1e-5
-    nIter   = 33
+    nIter   = 3
     
 
     now = datetime.now()
