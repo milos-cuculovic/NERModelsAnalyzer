@@ -113,7 +113,7 @@ if __name__ == '__main__':
                 useCuda = True
         else:
                 useCuda = False
-        train_model("4", os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + modelFile, useCuda, spacy_model_type)     
+        train_model("4", os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + modelFile, useCuda)
     else:
         if action_type == str(2):
             model_name = input("Model name to test: ")
