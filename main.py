@@ -34,6 +34,7 @@ def train_model(model, output_dir, useCuda, spacy_model_type = "1"):
         exit()
     elif model==str(4):
         trainBERTGrid(path_train_data_bert, output_dir, nIter, useCuda)
+        exit()
     else:
         exit("Wrong model selection")
 

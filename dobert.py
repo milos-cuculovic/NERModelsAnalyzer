@@ -374,10 +374,10 @@ b2 = 0.999
 import itertools
 
 def loopBerthyperparam(output_dir,num_train_epochs,use_cuda):
-    weightdecay=[0.1] #entre 0 et 0.1
-    learningrate=[2e-5]
+    weightdecay=[0.1,0.01,0.001,0.0001] #entre 0 et 0.1
+    learningrate=[2e-5,2.2e-5,2.4e-5,2.6e-5,2.8e-5,3e-5]
     warmupproportion=[0.1]
-    trainbatchsize=[32,30,28,26]
+    trainbatchsize=[32,30,28,26,24,22,20,18,16]
     hyperparam=[weightdecay,learningrate,warmupproportion,trainbatchsize]
     i=0
     list1_permutations = list(itertools.product(*hyperparam))
