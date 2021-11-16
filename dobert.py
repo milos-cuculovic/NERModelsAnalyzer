@@ -185,6 +185,12 @@ device = 'cpu'
 
 
 def trainBERTModel(jsonfile, output_dir, nIter, use_cuda):
+
+    learning_rate       = 2e-05
+    weight_decay        = 0.001
+    warmup_proportion   = 0.1
+    train_batch_size    = 26
+
     # INITIAL
     removEsc(os.path.abspath(jsonfile))
 
@@ -208,7 +214,8 @@ def trainBERTModel(jsonfile, output_dir, nIter, use_cuda):
     else:
         device = "cpu"
 
-    trainBert(output_dir, 32, True, int(nIter), use_cuda, False,1,2e-5,0.01,0.1)
+    trainBert(output_dir, train_batch_size, True, int(nIter), use_cuda, False, 1, learning_rate,
+              weight_decay, warmup_proportion)
     
 def trainBERTGrid(jsonfile, output_dir, nIter, use_cuda):
     # INITIAL
@@ -374,21 +381,24 @@ b2 = 0.999
 import itertools
 
 def loopBerthyperparam(output_dir,num_train_epochs,use_cuda):
-    weightdecay=[0.1,0.01,0.001,0.0001] #entre 0 et 0.1
-    learningrate=[2e-5,2.2e-5,2.4e-5,2.6e-5,2.8e-5,3e-5]
-    warmupproportion=[0.1]
-    trainbatchsize=[32,30,28,26,24,22,20,18,16]
-    hyperparam=[weightdecay,learningrate,warmupproportion,trainbatchsize]
-    i=0
+    weightdecay         = [0.1, 0.01, 0.001, 0.0001]
+    learningrate        = [2e-5, 2.2e-5, 2.4e-5, 2.6e-5, 2.8e-5, 3e-5]
+    warmupproportion    = [0.1]
+    trainbatchsize      = [32, 30, 28, 26, 24, 22, 20, 18, 16]
+    hyperparam          = [weightdecay, learningrate, warmupproportion, trainbatchsize]
+    i                   = 0
+
     list1_permutations = list(itertools.product(*hyperparam))
+
     for listtool in list1_permutations:
-        i+=1
-        weight=listtool[0]
-        learning=listtool[1]
-        warm=listtool[2]
-        trainbs=listtool[3]
-        trainBert(output_dir, trainbs, True, num_train_epochs, use_cuda, True,i,
-                    learning,weight,warm)  
+        i+= 1
+        weight = listtool[0]
+        learning = listtool[1]
+        warm = listtool[2]
+        trainbs = listtool[3]
+
+        trainBert(output_dir, trainbs, True, num_train_epochs, use_cuda, True, i, learning, weight, warm)
+
     compareauto(len(list1_permutations), output_dir)
 
 def compareauto(sizecombine,filename):
@@ -581,8 +591,8 @@ def prediction(t, model_name):
 
 
 
-def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda, do_eval,indexEval,
-              learning_rate,weight_decay,warmup_proportion):
+def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda, do_eval, indexEval,
+              learning_rate, weight_decay, warmup_proportion):
     processors = {"ner": NerProcessor}
 
     n_gpu = torch.cuda.device_count()
