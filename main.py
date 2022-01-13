@@ -6,7 +6,7 @@ from dospacy import evaluateSpacy
 from dobilstm import trainBiLSTMModel
 from datetime import datetime
 from dobert import trainBERTModel, evaluation, pip_aggregation, Ner, prediction,trainBERTGrid
-
+from doroberta import trainROBERTAModel, evaluationRoberta, pip_aggregationRoberta, RobertaNer, predictionRoberta,trainROBERTAGrid
 
 
 def train_model(model, output_dir, useCuda, spacy_model_type = "1"):
@@ -33,7 +33,14 @@ def train_model(model, output_dir, useCuda, spacy_model_type = "1"):
         trainBERTModel(path_train_data_bert, output_dir, nIter, useCuda)
         exit()
     elif model==str(4):
-        trainBERTGrid(path_train_data_bert, output_dir, nIter, useCuda)
+        grid_type = input("Grid type: (1. Bert; 2. RoBerta ")
+        if grid_type=="1":
+            trainBERTGrid(path_train_data_bert, output_dir, nIter, useCuda)
+        elif grid_type=="2":
+            trainROBERTAGrid(path_train_data_bert, output_dir, nIter, useCuda)
+        exit()
+    elif model==str(5):
+        trainROBERTAModel(path_train_data_bert, output_dir, nIter, useCuda)
         exit()
     else:
         exit("Wrong model selection")
@@ -54,14 +61,17 @@ def test_model_manually(model_path):
     testSpacyModel(model_path, number_of_testing_examples)
 
 def test_model_dataset(model_name):
-    choice = input("1: BERT; 2:SpaCy: ")
-    if choice == "1":
+    choice = input("1: BERT; 2:SpaCy; 3:RoBerta : ")
+    if choice == "1" or choice=="3":
         useCuda = input("Use Cuda? (y or n, default n): ")
         if useCuda == "y":
             useCuda = True
         else:
             useCuda = False
-        evaluation(model_name, useCuda)
+        if choice == "1":
+            evaluation(model_name, useCuda)
+        else:
+            evaluationRoberta(model_name, useCuda)
     else:
         #model_path = os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + model_name
         LABEL = ['LOCATION', 'CONTENT', 'TRIGGER', 'MODAL', 'ACTION']
@@ -93,12 +103,21 @@ if __name__ == '__main__':
     spacy_model_type = "1"
     action_type = input("Action type: (1. Train; 2. Dataset Test; 3. Manual Test; 4.Grid search): ")
     if action_type == str(1):
-        model = input("Model (1. spaCy; 2. Bi-LSTM; 3. BERT; 4. BERT-pip_aggregation): ")
+        model = input("Model (1. spaCy; 2. Bi-LSTM; 3. BERT; 4. BERT-pip_aggregation, 5.Roberta): ")
         modelFile = input("Enter the Model name to save: ")
         if model == "4":
             pip_aggregation(modelFile, modelFile + "_pip_aggregation")
             exit()
-        if model == "3":
+        if model=="6":
+            pip_aggregationRoberta(modelFile, modelFile + "_pip_aggregation")
+            exit()
+        if model == "3" or model == "4" :
+            useCuda = input("Use Cuda? (y or n, default n): ")
+            if useCuda == "y":
+                useCuda = True
+            else:
+                useCuda = False
+        if model == "5":
             useCuda = input("Use Cuda? (y or n, default n): ")
             if useCuda == "y":
                 useCuda = True
@@ -114,7 +133,7 @@ if __name__ == '__main__':
                 useCuda = True
         else:
                 useCuda = False
-        train_model("4", os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + modelFile, useCuda)
+        train_model(action_type, os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + modelFile, useCuda)
     else:
         if action_type == str(2):
             model_name = input("Model name to test: ")
@@ -122,7 +141,7 @@ if __name__ == '__main__':
             test_model_dataset(model_path)
         else:
             if action_type == str(3):
-                model = input("Model (1. spaCy; 2.BERT): ")
+                model = input("Model (1. spaCy; 2.BERT; 3.RoBerta): ")
                 if model == "1":
                     model_name = input("Model name to test: ")
                     model_path = os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + model_name
@@ -130,13 +149,14 @@ if __name__ == '__main__':
                 elif model == "2":
                     model_name = input("Model name to test: ")
                     text = input("Enter your testing text: ")
-
                     print(prediction(text, model_name))
-
                     model = Ner('trained_models/' + model_name+'/')
                     # output = model.predict(text)
                     # for prediction in output:
                     #     print(prediction)
-
+                elif model =="3":
+                    model_name=input("Model name to test: ")
+                    text = input("Enter your testing text: ")
+                    print(predictionRoberta(text, model_name))
             else:
                 train_model("1", os.path.dirname(os.path.abspath(__file__)) + '/trained_models/1_default', useCuda, spacy_model_type)

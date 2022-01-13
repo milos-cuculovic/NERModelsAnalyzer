@@ -320,6 +320,57 @@ def labelConll (line):
     lab=lis[length-1]
     return lab.strip()
 
+
+def json_jsonbis(jsonPath,jsonpath2):
+    ide=0
+    LABEL = ['LOCATION', 'CONTENT', 'TRIGGER', 'MODAL', 'ACTION','O']
+    dataset=[]
+    with open(jsonPath) as fi:
+        for jsonObj in fi:
+            data = json.loads(jsonObj)
+            listLABEL= data['array_agg']
+            sentence= data['text']
+            listw=sentence.split(" ")
+            longS=len(sentence)
+            incre=0
+            wordd=""
+            nertag=[]
+            while incre<longS:
+                deb=incre
+               
+                while incre<longS and sentence[incre]!=" " and sentence[incre] not in string.punctuation :
+                    wordd=wordd+sentence[incre]
+                    removeponct=['"',"-","(",")"]
+                    for let in removeponct:
+                        if let in wordd:
+                            wordd=wordd.replace(let,"")
+                    incre=incre+1
+
+                if incre!=deb:
+                    label='O'
+                    for lab in listLABEL:
+                        lab = lab.replace(',', "")
+                        if deb >= int(lab.split()[0]):
+                            if incre<= int(lab.split()[1]):
+                                label=lab.split()[2]
+                    nertag.append(LABEL.index(label))
+                   
+                if incre<longS:
+                    if sentence[incre] in string.punctuation:
+                        nertag.append(LABEL.index('O'))
+
+                incre=incre+1
+                wordd=""
+            datase={"id":ide,"tokens":listw,"ner_tags":nertag}
+            ide+=1
+            dataset.append(datase)
+            
+    with open(jsonpath2,'w')as outfile:
+        for entry in dataset:
+            json.dump(entry, outfile)
+            outfile.write('\n')
+
+
 #fonction qui met tous les paragraphe dans une autre fonction de maniere aleatoire
 def shuffleFile(file1,file2,file3):
      with open(file1) as f:
