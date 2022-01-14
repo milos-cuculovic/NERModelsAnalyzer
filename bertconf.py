@@ -370,6 +370,23 @@ def json_jsonbis(jsonPath,jsonpath2):
             json.dump(entry, outfile)
             outfile.write('\n')
 
+def tiggerreplacejson(jsonPath):
+    dataset=[]
+    with open(jsonPath) as fi:
+         for jsonObj in fi:
+            data = json.loads(jsonObj)
+            sentence= data['tokens']
+            label= data['ner_tags']
+            pos=0
+            for word in sentence:
+                if word in trigger:
+                    label[pos]=2
+            datase={"id":data['id'],"tokens":sentence,"ner_tags":label}
+            dataset.append(datase)
+    with open(jsonPath,'w')as outfile:
+        for entry in dataset:
+            json.dump(entry, outfile)
+            outfile.write('\n')
 
 #fonction qui met tous les paragraphe dans une autre fonction de maniere aleatoire
 def shuffleFile(file1,file2,file3):

@@ -28,7 +28,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader, TensorDataset, SequentialSampler, RandomSampler
 from torch.utils.data.distributed import DistributedSampler
 from nltk import word_tokenize
-from bertconf import removEsc, sentenceMean, json_conll, trigConll, crossval,json_jsonbis
+from bertconf import removEsc, sentenceMean, json_conll, trigConll, crossval,json_jsonbis,tiggerreplacejson
 
 trigger = ['why', 'on the contrary','what','however','either','while','rather','instead of', 'when',
          'in order to','therefore','not only', 'afterwards','once again','or','in order to','in particular',
@@ -184,7 +184,7 @@ def trainROBERTAModel(jsonfile, output_dir, nIter, use_cuda):
     learning_rate       = 2e-05
     weight_decay        = 0.001
     warmup_proportion   = 0.1
-    train_batch_size    = 26
+    train_batch_size    = 2
 
     # INITIAL
     removEsc(os.path.abspath(jsonfile))
@@ -200,6 +200,8 @@ def trainROBERTAModel(jsonfile, output_dir, nIter, use_cuda):
     json_jsonbis(os.path.abspath("valid1.json"), os.path.abspath("valid.json"))
 
     # # STEP FOUR REPLACE TRIGGER
+    tiggerreplacejson(os.path.abspath("train.json"))
+    tiggerreplacejson(os.path.abspath("valid.json"))
     # trigConll(os.path.abspath("train.txt"), trigger)
     # trigConll(os.path.abspath("valid.txt"), trigger)
 
@@ -223,12 +225,14 @@ def trainROBERTAGrid(jsonfile, output_dir, nIter, use_cuda):
     sentenceMean(os.path.abspath("train1.json"))
 
     # STEP THREE convert json to conll
-    json_conll(os.path.abspath("train1.json"), os.path.abspath(""), 'train.txt')
-    json_conll(os.path.abspath("valid1.json"), os.path.abspath(""), 'valid.txt')
+    json_jsonbis(os.path.abspath("train1.json"), os.path.abspath("train.json"))
+    json_jsonbis(os.path.abspath("valid1.json"), os.path.abspath("valid.json"))
 
-    # STEP FOUR REPLACE TRIGGER
-    trigConll(os.path.abspath("train.txt"), trigger)
-    trigConll(os.path.abspath("valid.txt"), trigger)
+    # # STEP FOUR REPLACE TRIGGER
+    tiggerreplacejson(os.path.abspath("train.json"))
+    tiggerreplacejson(os.path.abspath("valid.json"))
+    # trigConll(os.path.abspath("train.txt"), trigger)
+    # trigConll(os.path.abspath("valid.txt"), trigger)
 
     global device
     if use_cuda == True:
@@ -239,7 +243,7 @@ def trainROBERTAGrid(jsonfile, output_dir, nIter, use_cuda):
     loopRobertahyperparam(output_dir, int(nIter), use_cuda)
 
 def evaluationRoberta(output_dir, use_cuda):
-    trainRoberta(output_dir, 32, False, 1, use_cuda, True,"",2e-5,0.01,0.1)
+    trainRoberta(output_dir, eval_batch_size, False, 1, use_cuda, True,"",2e-5,0.01,0.1)
 
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
@@ -378,7 +382,7 @@ def loopRobertahyperparam(output_dir,num_train_epochs,use_cuda):
     weightdecay         = [0.1, 0.01, 0.001, 0.0001]
     learningrate        = [2e-5, 2.2e-5, 2.4e-5, 2.6e-5, 2.8e-5, 3e-5]
     warmupproportion    = [0.1]
-    trainbatchsize      = [32, 30, 28, 26, 24, 22, 20, 18, 16]
+    trainbatchsize      = [16,14,12,10,8,6,4,2]
     hyperparam          = [weightdecay, learningrate, warmupproportion, trainbatchsize]
     i                   = 0
 
@@ -700,7 +704,7 @@ def trainRoberta(output_dir, train_batch_size, do_train, num_train_epochs, use_c
             # return the encodings and the extended ner_tags
             return { **encodings, 'labels': labels }
         
-        dataset = dataset.map(add_encodings)
+        dataset = dataset.map(add_encodings, batch_size=train_batch_size)
         dataset.set_format(type='torch', columns=['input_ids', 'attention_mask', 'labels'])
         labels = dnertag.feature
         label2id = { k: labels.str2int(k) for k in labels.names }
@@ -728,6 +732,7 @@ def trainRoberta(output_dir, train_batch_size, do_train, num_train_epochs, use_c
         for _ in trange(int(num_train_epochs), desc="Epoch"):
                     tr_loss = 0
                     nb_tr_examples, nb_tr_steps = 0, 0
+                    train_data
                     for step, batch in enumerate(tqdm(train_data, desc="Iteration")):
                         batch = { k: v.to(device) for k, v in batch.items() }
                         input_ids=batch.get("input_ids")
@@ -765,22 +770,22 @@ def trainRoberta(output_dir, train_batch_size, do_train, num_train_epochs, use_c
         
         label_list =['LOCATION', 'CONTENT', 'TRIGGER', 'MODAL', 'ACTION','O']
         model_to_save = model.module if hasattr(model, 'module') else model  # Only save the model it-self
-        model_to_save.save_pretrained("modeltrained/")
-        tokenizer.save_pretrained("modeltrained/")
+        model_to_save.save_pretrained(output_dir)
+        tokenizer.save_pretrained(output_dir)
         label_map = {i: label for i, label in enumerate(label_list, 1)}
         model_config = {"roberta_model": roberta_model, "do_lower": True,
                              "max_seq_length": max_seq_length, "num_labels": len(label_list) + 1,
                                 "label_map": label_map}
-        json.dump(model_config, open(os.path.join("modeltrained/", "model_config.json"), "w"))
-        plt.plot(train_loss, '-o')
+        json.dump(model_config, open(os.path.join(output_dir, "model_config.json"), "w"))
+        # plt.plot(train_loss, '-o')
                 # plt.plot(eval_accu,'-o')
-        plt.xlabel('epoch')
-        plt.ylabel('loss')
-        plt.legend(['Train'])
-        plt.title('Train Loss')
-        plt.show()
+        # plt.xlabel('epoch')
+        # plt.ylabel('loss')
+        # plt.legend(['Train'])
+        # plt.title('Train Loss')
+        # plt.show()
         
-        plt.savefig("modeltrained/" + '/losses.png')
+        # plt.savefig("modeltrained/" + '/losses.png')
         
         
 
