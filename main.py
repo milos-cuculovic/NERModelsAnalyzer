@@ -9,7 +9,7 @@ from dobert import trainBERTModel, evaluation, pip_aggregation, Ner, prediction,
 from doroberta import trainROBERTAModel, evaluationRoberta, pip_aggregationRoberta, RobertaNer, predictionRoberta,trainROBERTAGrid
 
 
-def train_model(model, output_dir, useCuda, spacy_model_type = "1"):
+def train_model(model, output_dir, useCuda, spacy_model_type = "1", grid_type = "1"):
     LABEL = ['LOCATION', 'CONTENT', 'TRIGGER', 'MODAL', 'ACTION']
 
     ROOT_DIR = os.path.dirname(os.path.abspath('data.json'))
@@ -33,7 +33,6 @@ def train_model(model, output_dir, useCuda, spacy_model_type = "1"):
         trainBERTModel(path_train_data_bert, output_dir, nIter, useCuda)
         exit()
     elif model==str(4):
-        grid_type = input("Grid type: (1. Bert; 2. RoBerta ")
         if grid_type=="1":
             trainBERTGrid(path_train_data_bert, output_dir, nIter, useCuda)
         elif grid_type=="2":
@@ -127,13 +126,14 @@ if __name__ == '__main__':
             spacy_model_type = input("1. Blank; 2. en_core_web_trf; 3. en_core_web_sm (Default 1): ")
         train_model(model, os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + modelFile, useCuda, spacy_model_type)
     elif action_type==str(4):
+        grid_type = input("Grid type: (1. Bert; 2. RoBerta ")
         modelFile = input("Enter the Model name to save: ")
         useCuda = input("Use Cuda? (y or n, default n): ")
         if useCuda == "y":
                 useCuda = True
         else:
                 useCuda = False
-        train_model(action_type, os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + modelFile, useCuda)
+        train_model(action_type, os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + modelFile, useCuda, grid_type)
     else:
         if action_type == str(2):
             model_name = input("Model name to test: ")
