@@ -732,7 +732,6 @@ def trainRoberta(output_dir, train_batch_size, do_train, num_train_epochs, use_c
         for _ in trange(int(num_train_epochs), desc="Epoch"):
                     tr_loss = 0
                     nb_tr_examples, nb_tr_steps = 0, 0
-                    train_data
                     for step, batch in enumerate(tqdm(train_data, desc="Iteration")):
                         batch = { k: v.to(device) for k, v in batch.items() }
                         input_ids=batch.get("input_ids")
