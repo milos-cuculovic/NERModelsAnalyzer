@@ -6,7 +6,7 @@ from dospacy import evaluateSpacy
 from dobilstm import trainBiLSTMModel
 from datetime import datetime
 from dobert import trainBERTModel, evaluation, pip_aggregation, Ner, prediction,trainBERTGrid
-from doroberta import trainROBERTAModel, evaluationRoberta, pip_aggregationRoberta, RobertaNer, predictionRoberta,trainROBERTAGrid
+from doroberta import trainROBERTAModel, evaluationRoberta, pip_aggregationRoberta, predictionRoberta,trainROBERTAGrid
 
 
 def train_model(model, output_dir, useCuda, spacy_model_type = "1"):
