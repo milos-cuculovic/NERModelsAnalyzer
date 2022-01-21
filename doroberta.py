@@ -28,7 +28,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader, TensorDataset, SequentialSampler, RandomSampler
 from torch.utils.data.distributed import DistributedSampler
 from nltk import word_tokenize
-from bertconf import removEsc, sentenceMean, json_conll, trigConll, crossval,json_jsonbis, tiggerreplacejson
+from bertconf import removEsc, sentenceMean, json_conll, trigConll, crossval,json_jsonbis,tiggerreplacejson
 
 trigger = ['why', 'on the contrary','what','however','either','while','rather','instead of', 'when',
          'in order to','therefore','not only', 'afterwards','once again','or','in order to','in particular',
@@ -42,7 +42,10 @@ trigger = ['why', 'on the contrary','what','however','either','while','rather','
          'not just','not only','besides','after all','generally','similar to','too','like']
 
 
+
+
 device = 'cpu'
+
 
 def trainROBERTAModel(jsonfile, output_dir, nIter, use_cuda):
 
@@ -153,17 +156,25 @@ def readfile(filename):
     '''
     read file
     '''
-    data=[]
-    label=['LOCATION', 'CONTENT', 'TRIGGER', 'MODAL', 'ACTION','O']
-    with open(filename, 'r') as f:
-        for jsonObj in f:
-            jsontxt = json.loads(jsonObj)
-            lab=jsontxt["ner_tags"]
-            tupelab=[]
-            for num in lab:
-                tupelab.append(label[num])
-            tup=(jsontxt["tokens"],tupelab)
-            data.append(tup)
+    f = open(filename)
+    data = []
+    sentence = []
+    label = []
+    for line in f:
+        if len(line) == 0 or line.startswith('-DOCSTART') or line[0] == "\n":
+            if len(sentence) > 0:
+                data.append((sentence, label))
+                sentence = []
+                label = []
+            continue
+        splits = line.split(' ')
+        sentence.append(splits[0])
+        label.append(splits[-1][:-1])
+
+    if len(sentence) > 0:
+        data.append((sentence, label))
+        sentence = []
+        label = []
     return data
 
 
@@ -194,15 +205,20 @@ class NerProcessor(DataProcessor):
     def get_train_examples(self, data_dir):
         """See base class."""
         return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "train.json")), "train")
+            self._read_tsv(os.path.join(data_dir, "train.txt")), "train")
 
     def get_dev_examples(self, data_dir):
         """See base class."""
         return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "valid.json")), "dev")
+            self._read_tsv(os.path.join(data_dir, "valid.txt")), "dev")
+
+    def get_test_examples(self, data_dir):
+        """See base class."""
+        return self._create_examples(
+            self._read_tsv(os.path.join(data_dir, "test.txt")), "test")
 
     def get_labels(self):
-        return  ['LOCATION','CONTENT', 'TRIGGER', 'MODAL', 'ACTION','O']
+        return  ['LOCATION','CONTENT', 'TRIGGER', 'MODAL', 'ACTION','O','[CLS]','[SEP]']
 
     def _create_examples(self, lines, set_type):
         examples = []
@@ -228,25 +244,18 @@ do_lower_case = "store_false"
 fp16_opt_level = 'O1'
 b1 = 0.9
 b2 = 0.999
-
 import itertools
 
 def loopRobertahyperparam(output_dir,num_train_epochs,use_cuda):
     weightdecay         = [0.1, 0.01, 0.001, 0.0001]
     learningrate        = [2e-5, 2.2e-5, 2.4e-5, 2.6e-5, 2.8e-5, 3e-5]
     warmupproportion    = [0.1]
-    trainbatchsize      = [6,4,2]
-    trainbatchsize1     = [8,6,4,2]
+    trainbatchsize      = [16,14,12,10,8,6,4,2]
     hyperparam          = [weightdecay, learningrate, warmupproportion, trainbatchsize]
-    hyperparam1         = [weightdecay, learningrate, warmupproportion, trainbatchsize1]
-    i                   = 45
-    list1_permutations1 = list(itertools.product(*hyperparam1))
-    list1_permutations = list(itertools.product(*hyperparam))    
-    for comb in list1_permutations1[:44]:
-        if comb in list1_permutations:
-            list1_permutations.remove(comb)
-        
-    
+    i                   = 0
+
+    list1_permutations = list(itertools.product(*hyperparam))
+
     for listtool in list1_permutations:
         i+= 1
         weight = listtool[0]
@@ -258,55 +267,6 @@ def loopRobertahyperparam(output_dir,num_train_epochs,use_cuda):
 
     compareauto(len(list1_permutations), output_dir)
 
-
-class Nertrain( RobertaForTokenClassification):
-
-    def forward(self, input_ids, token_type_ids=None, attention_mask=None, labels=None, valid_ids=None,
-                attention_mask_label=None):
-        sequence_output = self.roberta(input_ids, token_type_ids, attention_mask, head_mask=None)[0]
-        batch_size, max_len, feat_dim = sequence_output.shape
-        valid_output = torch.zeros(batch_size, max_len, feat_dim, dtype=torch.float32, device=device)
-        for i in range(batch_size):
-            jj = -1
-            for j in range(max_len):
-                if valid_ids[i][j].item() == 1:
-                    jj += 1
-                    valid_output[i][jj] = sequence_output[i][j]
-        sequence_output = self.dropout(valid_output)
-        logits = self.classifier(sequence_output)
-
-        if labels is not None:
-            loss_fct = nn.CrossEntropyLoss(ignore_index=0)
-            # Only keep active parts of the loss
-            # attention_mask_label = None
-            if attention_mask_label is not None:
-                active_loss = attention_mask_label.view(-1) == 1
-                active_logits = logits.view(-1, self.num_labels)[active_loss]
-                active_labels = labels.view(-1)[active_loss]
-                loss = loss_fct(active_logits, active_labels)
-            else:
-                loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
-            return loss
-        else:
-            return logits
-
-
-class RobertaNer(RobertaForTokenClassification):
-
-    def forward(self, input_ids, token_type_ids=None, attention_mask=None, valid_ids=None):
-        sequence_output = self.roberta(input_ids, token_type_ids, attention_mask, head_mask=None)[0]
-        batch_size,max_len,feat_dim = sequence_output.shape
-        valid_output = torch.zeros(batch_size,max_len,feat_dim,dtype=torch.float32,device='cuda' if torch.cuda.is_available() else 'cpu')
-        for i in range(batch_size):
-            jj = -1
-            for j in range(max_len):
-                    if valid_ids[i][j].item() == 1:
-                        jj += 1
-                        valid_output[i][jj] = sequence_output[i][j]
-        sequence_output = self.dropout(valid_output)
-        logits = self.classifier(sequence_output)
-        return logits
-    
 def compareauto(sizecombine,filename):
     precision=[0,0]
     recall=[0,0]
@@ -346,7 +306,6 @@ def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer
         labels = []
         valid = []
         label_mask = []
-            
         for i, word in enumerate(textlist):
             token = tokenizer.tokenize(word)
             tokens.extend(token)
@@ -395,6 +354,7 @@ def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer
             segment_ids.pop()
         if(len(valid) != max_seq_length):
             valid.pop()
+        print(len(valid))
         assert len(input_ids) == max_seq_length
         assert len(input_mask) == max_seq_length
         # assert len(segment_ids) == max_seq_length
@@ -456,7 +416,15 @@ def predictionRoberta(t, model_name):
     print(result)
     for dic in result:
         label = dic['entity']
+        # print(label)#
         index = label.find("_") + 1
+        # print(index)#0
+        number = label[index:]
+        number=label
+        # print(number)#content
+        # print(number)
+        # pos = int(number) - 1
+        # label_name = label_list[pos]
         label_name=label[index:]
         word = dic['word']
 
@@ -521,7 +489,7 @@ def trainRoberta(output_dir, train_batch_size, do_train, num_train_epochs, use_c
     label_list = processor.get_labels()
     num_labels = len(label_list) + 1
 
-    tokenizer =  RobertaTokenizer.from_pretrained(roberta_model, do_lower_case=do_lower_case, max_len=512)
+    tokenizer =  RobertaTokenizer.from_pretrained(roberta_model, num_labels=num_labels,max_len=512)
 
     train_examples = None
     num_train_optimization_steps = 0.0
@@ -537,8 +505,8 @@ def trainRoberta(output_dir, train_batch_size, do_train, num_train_epochs, use_c
 
     # Prepare model
     config = RobertaConfig.from_pretrained(roberta_model, num_labels=num_labels, finetuning_task=task_name)
-    model = Nertrain.from_pretrained(roberta_model, from_tf=False, config=config)
-    print(model)
+    model = RobertaForTokenClassification.from_pretrained(roberta_model, from_tf=False, config=config)
+
     if local_rank == 0:
         torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab
 
@@ -572,10 +540,11 @@ def trainRoberta(output_dir, train_batch_size, do_train, num_train_epochs, use_c
     tr_loss = 0
     label_map = {i: label for i, label in enumerate(label_list, 1)}
     if do_train:
-        
+        from transformers import DataCollatorWithPadding
+        data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
         features={'id': Value(dtype='string', id=None), 
           'tokens': Sequence(feature=Value(dtype='string', id=None), 
-                             length=-1, id=None),'ner_tags': Sequence(feature=ClassLabel(num_classes=6, names=['LOCATION', 'CONTENT', 'TRIGGER', 'MODAL', 'ACTION','O'], names_file=None, id=None), length=-1, id=None)}
+                             length=-1, id=None),'ner_tags': Sequence(feature=ClassLabel(num_classes=8, names=['LOCATION', 'CONTENT', 'TRIGGER', 'MODAL', 'ACTION','O','[CLS]','[SEP]'], names_file=None, id=None), length=-1, id=None)}
         data_files = {
             "train": os.path.abspath("train.json"),
             "validation": os.path.abspath("valid.json"),
@@ -604,51 +573,57 @@ def trainRoberta(output_dir, train_batch_size, do_train, num_train_epochs, use_c
             encodings = tokenizer(example['tokens'], truncation=True, padding='max_length', is_split_into_words=True)
             # extend the ner_tags so that it matches the max_length of the input_ids
             labels = example['ner_tags'] + [0] * (tokenizer.model_max_length - len(example['ner_tags']))
+            labels= labels[:512]
             # return the encodings and the extended ner_tags
             return { **encodings, 'labels': labels }
-        
+        model = RobertaForTokenClassification.from_pretrained(roberta_model, num_labels=num_labels)
+        # tokenizer =RobertaTokenizer.from_pretrained(roberta_model, num_labels=num_labels,max_len=512)
         dataset = dataset.map(add_encodings, batch_size=train_batch_size)
         dataset.set_format(type='torch', columns=['input_ids', 'attention_mask', 'labels'])
+        for i in tqdm(dataset['train']):
+            
+            if len(i['labels'])!=512:
+                        print(len(i['labels']))
+                        
         labels = dnertag.feature
         label2id = { k: labels.str2int(k) for k in labels.names }
         id2label = { v: k for k, v in label2id.items() }
         num_labels = dnertag.feature.num_classes
-        model = RobertaForTokenClassification.from_pretrained(roberta_model, num_labels=num_labels)
+       
         # assign the 'id2label' and 'label2id' model configs
         model.config.id2label = id2label
         model.config.label2id = label2id
-        if (use_cuda):
-            model.cuda()
+
 
         model.to(device)
         # initialize the Adam optimizer (used for training/updating the model)
         optimizer = optim.AdamW(params=model.parameters(), lr=1e-5)
         # set the number of epochs 
         # batch the train data so that each batch contains 4 examples (using 'batch_size')
-        train_data = torch.utils.data.DataLoader(dataset['train'], batch_size=train_batch_size)
+        train_data = torch.utils.data.DataLoader(dataset['train'], shuffle=True, batch_size=train_batch_size)
         max_grad_norm = 1.0
         n_gpu = torch.cuda.device_count()
         warmup_steps = int(warmup_proportion * num_train_optimization_steps)
         scheduler = WarmupLinearSchedule(optimizer, warmup_steps=warmup_steps, t_total=num_train_optimization_steps)
         global_step=0
         train_loss = []
-        for _ in trange(int(num_train_epochs), desc="Epoch"):
+        for epoch in range(num_train_epochs):                    
                     tr_loss = 0
                     nb_tr_examples, nb_tr_steps = 0, 0
-                    for step, batch in enumerate(tqdm(train_data, desc="Iteration")):
-                        batch = { k: v.to(device) for k, v in batch.items() }
-                        input_ids=batch.get("input_ids")
+                    step=0
+                    
+                    for batch in tqdm(train_data):
+                        batch = {k: v.to(device) for k, v in batch.items()}
+                        print(len(batch.get("input_ids")[0]))
                         outputs = model(**batch)
-                        loss = outputs[0]
+                        loss = outputs.loss
+                        
+                        input_ids=batch.get("input_ids")
                         if n_gpu > 1:
                             loss = loss.mean()  # mean() to average on multi-gpu.
                         if gradient_accumulation_steps > 1:
                             loss = loss / gradient_accumulation_steps
         
-                        # if fp16:
-                        #     with amp.scale_loss(loss, optimizer) as scaled_loss:
-                        #         scaled_loss.backward()
-                        #     torch.nn.utils.clip_grad_norm_(amp.master_params(optimizer), max_grad_norm)
                         else:
                             loss.backward()
                             torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
@@ -660,7 +635,7 @@ def trainRoberta(output_dir, train_batch_size, do_train, num_train_epochs, use_c
                             scheduler.step()  # Update learning rate schedule
                             model.zero_grad()
                             global_step += 1
-        
+                        step+=1
                     tr_losses = tr_loss / len(train_data)
                     # if tr_losses < 0.05:
                     #     break
@@ -668,9 +643,9 @@ def trainRoberta(output_dir, train_batch_size, do_train, num_train_epochs, use_c
                     print(train_loss)
                     print(len(train_loss))
         # iterate through the data 'n_epochs' times
-        max_seq_length = 128
+        # max_seq_length = 128
         
-        label_list =['LOCATION', 'CONTENT', 'TRIGGER', 'MODAL', 'ACTION','O']
+        label_list =['LOCATION', 'CONTENT', 'TRIGGER', 'MODAL', 'ACTION','O','[CLS]','[SEP]']
         model_to_save = model.module if hasattr(model, 'module') else model  # Only save the model it-self
         model_to_save.save_pretrained(output_dir)
         tokenizer.save_pretrained(output_dir)
@@ -679,25 +654,27 @@ def trainRoberta(output_dir, train_batch_size, do_train, num_train_epochs, use_c
                              "max_seq_length": max_seq_length, "num_labels": len(label_list) + 1,
                                 "label_map": label_map}
         json.dump(model_config, open(os.path.join(output_dir, "model_config.json"), "w"))
-        plt.plot(train_loss, '-o')
-            #plt.plot(eval_accu,'-o')
-        plt.xlabel('epoch')
-        plt.ylabel('loss')
-        plt.legend(['Train'])
-        plt.title('Train Loss')
+        # plt.plot(train_loss, '-o')
+                # plt.plot(eval_accu,'-o')
+        # plt.xlabel('epoch')
+        # plt.ylabel('loss')
+        # plt.legend(['Train'])
+        # plt.title('Train Loss')
         # plt.show()
         
-        plt.savefig("modeltrained/" + '/losses.png')
+        # plt.savefig("modeltrained/" + '/losses.png')
         
         
+
     else:
         # Load a trained model and vocabulary that you have fine-tuned
-        config = RobertaConfig.from_pretrained(roberta_model, num_labels=num_labels, finetuning_task=task_name)
-        # model =  AutoModel.from_pretrained(output_dir, from_tf=False, config=config)
+        model = RobertaForTokenClassification.from_pretrained(output_dir)
+        tokenizer =  RobertaTokenizer.from_pretrained(output_dir, do_lower_case=do_lower_case)
 
     if (use_cuda):
         model.cuda()
     model.to(device)
+
 
     if do_eval and (local_rank == -1 or torch.distributed.get_rank() == 0):
 
