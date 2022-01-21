@@ -18,8 +18,6 @@ from pytorch_transformers import (AdamW,
                                   WarmupLinearSchedule)
 from transformers import pipeline, AutoModelForTokenClassification
 from transformers import BertConfig
-from transformers import pipeline, AutoModelForTokenClassification
-from transformers import BertTokenizer, BertForTokenClassification
 
 import torch
 from tqdm import tqdm, trange
@@ -28,11 +26,6 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader, TensorDataset, SequentialSampler, RandomSampler
 from torch.utils.data.distributed import DistributedSampler
 from nltk import word_tokenize
-import torch.distributed as dist
-import torch.multiprocessing as mp
-import torch.nn as nn
-import torch.optim as optim
-from torch.nn.parallel import DistributedDataParallel as DDP
 from bertconf import removEsc, sentenceMean, json_conll, trigConll, crossval
 
 trigger = ['why', 'on the contrary','what','however','either','while','rather','instead of', 'when',
