@@ -142,9 +142,9 @@ class InputExample(object):
 
 class Nertrain(RobertaForTokenClassification):
 
-    def forward(self, input_ids, token_type_ids=None, attention_mask=None, labels=None, valid_ids=None,
+    def forward(self, input_ids, attention_mask=None, labels=None, valid_ids=None,
                 attention_mask_label=None):
-        sequence_output = self.bert(input_ids, token_type_ids, attention_mask, head_mask=None)[0]
+        sequence_output = self.roberta(input_ids,  attention_mask, head_mask=None)[0]
         batch_size, max_len, feat_dim = sequence_output.shape
         valid_output = torch.zeros(batch_size, max_len, feat_dim, dtype=torch.float32, device=device)
         for i in range(batch_size):
@@ -174,8 +174,8 @@ class Nertrain(RobertaForTokenClassification):
 
 class RoBertNer(RobertaForTokenClassification):
 
-    def forward(self, input_ids, token_type_ids=None, attention_mask=None, valid_ids=None):
-        sequence_output = self.bert(input_ids, token_type_ids, attention_mask, head_mask=None)[0]
+    def forward(self, input_ids, attention_mask=None, valid_ids=None):
+        sequence_output = self.roberta(input_ids, attention_mask, head_mask=None)[0]
         batch_size,max_len,feat_dim = sequence_output.shape
         valid_output = torch.zeros(batch_size,max_len,feat_dim,dtype=torch.float32,device='cuda' if torch.cuda.is_available() else 'cpu')
         for i in range(batch_size):
@@ -389,7 +389,6 @@ def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer
             segment_ids.pop()
         if(len(valid) != max_seq_length):
             valid.pop()
-        print(len(valid))
         assert len(input_ids) == max_seq_length
         assert len(input_mask) == max_seq_length
         # assert len(segment_ids) == max_seq_length
@@ -524,7 +523,7 @@ def trainRoberta(output_dir, train_batch_size, do_train, num_train_epochs, use_c
     label_list = processor.get_labels()
     num_labels = len(label_list) + 1
 
-    tokenizer =  RobertaTokenizer.from_pretrained(roberta_model, num_labels=num_labels,max_len=512)
+    tokenizer =  RobertaTokenizer.from_pretrained(roberta_model)
 
     train_examples = None
     num_train_optimization_steps = 0.0
@@ -575,135 +574,86 @@ def trainRoberta(output_dir, train_batch_size, do_train, num_train_epochs, use_c
     tr_loss = 0
     label_map = {i: label for i, label in enumerate(label_list, 1)}
     if do_train:
-        from transformers import DataCollatorWithPadding
-        data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
-        features={'id': Value(dtype='string', id=None), 
-          'tokens': Sequence(feature=Value(dtype='string', id=None), 
-                             length=-1, id=None),'ner_tags': Sequence(feature=ClassLabel(num_classes=8, names=['LOCATION', 'CONTENT', 'TRIGGER', 'MODAL', 'ACTION','O','[CLS]','[SEP]'], names_file=None, id=None), length=-1, id=None)}
-        data_files = {
-            "train": os.path.abspath("train.json"),
-            "validation": os.path.abspath("valid.json"),
-            "test":os.path.abspath("valid.json")
-        }
-        
-        
-        dataset = load_dataset("json",data_files=data_files)
-        did=Value(dtype='string', id=None)
-        dtokens=Sequence(feature=Value(dtype='string', id=None), length=-1, id=None)
-        dnertag=Sequence(feature=ClassLabel(num_classes=6, names=['LOCATION', 'CONTENT', 'TRIGGER', 'MODAL', 'ACTION','O'], names_file=None, id=None), length=-1, id=None)
-        def add_encodings(example):
-            """Processing the example
-            
-            Args:
-                example (dict): The dataset example.
-            
-            Returns:
-                dict: The dictionary containing the following updates:
-                    - input_ids: The list of input ids of the tokens.
-                    - attention_mask: The attention mask list.
-                    - ner_tags: The updated ner_tags.
-            
-            """
-            # get the encodings of the tokens. The tokens are already split, that is why we must add is_split_into_words=True
-            encodings = tokenizer(example['tokens'], truncation=True, padding='max_length', is_split_into_words=True)
-            # extend the ner_tags so that it matches the max_length of the input_ids
-            labels = example['ner_tags'] + [0] * (tokenizer.model_max_length - len(example['ner_tags']))
-            labels= labels[:512]
-            # return the encodings and the extended ner_tags
-            return { **encodings, 'labels': labels }
-        model = RobertaForTokenClassification.from_pretrained(roberta_model, num_labels=num_labels)
-        # tokenizer =RobertaTokenizer.from_pretrained(roberta_model, num_labels=num_labels,max_len=512)
-        dataset = dataset.map(add_encodings, batch_size=train_batch_size)
-        dataset.set_format(type='torch', columns=['input_ids', 'attention_mask', 'labels'])
-        for i in tqdm(dataset['train']):
-            
-            if len(i['labels'])!=512:
-                        print(len(i['labels']))
-                        
-        labels = dnertag.feature
-        label2id = { k: labels.str2int(k) for k in labels.names }
-        id2label = { v: k for k, v in label2id.items() }
-        num_labels = dnertag.feature.num_classes
-       
-        # assign the 'id2label' and 'label2id' model configs
-        model.config.id2label = id2label
-        model.config.label2id = label2id
+        train_features = convert_examples_to_features(
+            train_examples, label_list, max_seq_length, tokenizer)
+        logger.info("***** Running training *****")
+        logger.info("  Num examples = %d", len(train_examples))
+        logger.info("  Batch size = %d", train_batch_size)
+        logger.info("  Num steps = %d", num_train_optimization_steps)
+        all_input_ids = torch.tensor([f.input_ids for f in train_features], dtype=torch.long)
+        all_input_mask = torch.tensor([f.input_mask for f in train_features], dtype=torch.long)
+        all_label_ids = torch.tensor([f.label_id for f in train_features], dtype=torch.long)
+        all_valid_ids = torch.tensor([f.valid_ids for f in train_features], dtype=torch.long)
+        all_lmask_ids = torch.tensor([f.label_mask for f in train_features], dtype=torch.long)
+        train_data = TensorDataset(all_input_ids, all_input_mask,  all_label_ids, all_valid_ids,
+                                   all_lmask_ids)
+        if local_rank == -1:
+            train_sampler = RandomSampler(train_data)
+        else:
+            train_sampler = DistributedSampler(train_data)
+        train_dataloader = DataLoader(train_data, sampler=train_sampler, batch_size=
+        train_batch_size)
+        model.train()
+        train_losses = []
+        for _ in trange(int(num_train_epochs), desc="Epoch"):
+            tr_loss = 0
+            nb_tr_examples, nb_tr_steps = 0, 0
+            for step, batch in enumerate(tqdm(train_dataloader, desc="Iteration")):
+                batch = tuple(t.to(device) for t in batch)
+                input_ids, input_mask, label_ids, valid_ids, l_mask = batch
+                loss = model(input_ids, input_mask, label_ids, valid_ids, l_mask)
+                if n_gpu > 1:
+                    loss = loss.mean()  # mean() to average on multi-gpu.
+                if gradient_accumulation_steps > 1:
+                    loss = loss / gradient_accumulation_steps
 
+                # if fp16:
+                #     with amp.scale_loss(loss, optimizer) as scaled_loss:
+                #         scaled_loss.backward()
+                #     torch.nn.utils.clip_grad_norm_(amp.master_params(optimizer), max_grad_norm)
+                else:
+                    loss.backward()
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
+                tr_loss += loss.item()
+                nb_tr_examples += input_ids.size(0)
+                nb_tr_steps += 1
+                if (step + 1) % gradient_accumulation_steps == 0:
+                    optimizer.step()
+                    scheduler.step()  # Update learning rate schedule
+                    model.zero_grad()
+                    global_step += 1
 
-        model.to(device)
-        # initialize the Adam optimizer (used for training/updating the model)
-        optimizer = optim.AdamW(params=model.parameters(), lr=1e-5)
-        # set the number of epochs 
-        # batch the train data so that each batch contains 4 examples (using 'batch_size')
-        train_data = torch.utils.data.DataLoader(dataset['train'], shuffle=True, batch_size=train_batch_size)
-        max_grad_norm = 1.0
-        n_gpu = torch.cuda.device_count()
-        warmup_steps = int(warmup_proportion * num_train_optimization_steps)
-        scheduler = WarmupLinearSchedule(optimizer, warmup_steps=warmup_steps, t_total=num_train_optimization_steps)
-        global_step=0
-        train_loss = []
-        for epoch in range(num_train_epochs):                    
-                    tr_loss = 0
-                    nb_tr_examples, nb_tr_steps = 0, 0
-                    step=0
-                    
-                    for batch in tqdm(train_data):
-                        batch = {k: v.to(device) for k, v in batch.items()}
-                        print(len(batch.get("input_ids")[0]))
-                        outputs = model(**batch)
-                        loss = outputs.loss
-                        
-                        input_ids=batch.get("input_ids")
-                        if n_gpu > 1:
-                            loss = loss.mean()  # mean() to average on multi-gpu.
-                        if gradient_accumulation_steps > 1:
-                            loss = loss / gradient_accumulation_steps
-        
-                        else:
-                            loss.backward()
-                            torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
-                        tr_loss += loss.item()
-                        nb_tr_examples += input_ids.size(0)
-                        nb_tr_steps += 1
-                        if (step + 1) % gradient_accumulation_steps == 0:
-                            optimizer.step()
-                            scheduler.step()  # Update learning rate schedule
-                            model.zero_grad()
-                            global_step += 1
-                        step+=1
-                    tr_losses = tr_loss / len(train_data)
-                    # if tr_losses < 0.05:
-                    #     break
-                    train_loss.append(tr_losses)
-                    print(train_loss)
-                    print(len(train_loss))
-        # iterate through the data 'n_epochs' times
-        # max_seq_length = 128
-        
-        label_list =['LOCATION', 'CONTENT', 'TRIGGER', 'MODAL', 'ACTION','O','[CLS]','[SEP]']
+            tr_losses = tr_loss / len(train_dataloader)
+            if tr_losses < 0.05:
+                break
+            train_losses.append(tr_losses)
+            print(train_losses)
+            print(len(train_losses))
+
+        # Save a trained model and the associated configuration
+        print(train_losses)
+        print(len(train_losses))
         model_to_save = model.module if hasattr(model, 'module') else model  # Only save the model it-self
         model_to_save.save_pretrained(output_dir)
         tokenizer.save_pretrained(output_dir)
         label_map = {i: label for i, label in enumerate(label_list, 1)}
-        model_config = {"roberta_model": roberta_model, "do_lower": True,
-                             "max_seq_length": max_seq_length, "num_labels": len(label_list) + 1,
-                                "label_map": label_map}
+        model_config = {"roberta_model": roberta_model, "do_lower": do_lower_case,
+                        "max_seq_length": max_seq_length, "num_labels": len(label_list) + 1,
+                        "label_map": label_map}
         json.dump(model_config, open(os.path.join(output_dir, "model_config.json"), "w"))
-        # plt.plot(train_loss, '-o')
-                # plt.plot(eval_accu,'-o')
-        # plt.xlabel('epoch')
-        # plt.ylabel('loss')
-        # plt.legend(['Train'])
-        # plt.title('Train Loss')
-        # plt.show()
-        
-        # plt.savefig("modeltrained/" + '/losses.png')
-        
-        
+        plt.plot(train_losses, '-o')
+        # plt.plot(eval_accu,'-o')
+        plt.xlabel('epoch')
+        plt.ylabel('loss')
+        plt.legend(['Train'])
+        plt.title('Train Loss')
 
+        plt.show()
+
+        plt.savefig(output_dir + '/losses.png')
     else:
         # Load a trained model and vocabulary that you have fine-tuned
-        model = RobertaForTokenClassification.from_pretrained(output_dir)
+        model = Nertrain.from_pretrained(output_dir)
         tokenizer =  RobertaTokenizer.from_pretrained(output_dir, do_lower_case=do_lower_case)
 
     if (use_cuda):
@@ -721,11 +671,10 @@ def trainRoberta(output_dir, train_batch_size, do_train, num_train_epochs, use_c
         logger.info("  Batch size = %d", eval_batch_size)
         all_input_ids = torch.tensor([f.input_ids for f in eval_features], dtype=torch.long)
         all_input_mask = torch.tensor([f.input_mask for f in eval_features], dtype=torch.long)
-        all_segment_ids = torch.tensor([f.segment_ids for f in eval_features], dtype=torch.long)
         all_label_ids = torch.tensor([f.label_id for f in eval_features], dtype=torch.long)
         all_valid_ids = torch.tensor([f.valid_ids for f in eval_features], dtype=torch.long)
         all_lmask_ids = torch.tensor([f.label_mask for f in eval_features], dtype=torch.long)
-        eval_data = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids, all_valid_ids,
+        eval_data = TensorDataset(all_input_ids, all_input_mask, all_label_ids, all_valid_ids,
                                   all_lmask_ids)
         # Run prediction for full data
         eval_sampler = SequentialSampler(eval_data)
@@ -734,17 +683,16 @@ def trainRoberta(output_dir, train_batch_size, do_train, num_train_epochs, use_c
         y_true = []
         y_pred = []
         label_map = {i: label for i, label in enumerate(label_list, 1)}
-        for input_ids, input_mask, segment_ids, label_ids, valid_ids, l_mask in tqdm(eval_dataloader,
+        for input_ids, input_mask, label_ids, valid_ids, l_mask in tqdm(eval_dataloader,
                                                                                      desc="Evaluating"):
             input_ids = input_ids.to(device)
             input_mask = input_mask.to(device)
-            segment_ids = segment_ids.to(device)
             valid_ids = valid_ids.to(device)
             label_ids = label_ids.to(device)
             l_mask = l_mask.to(device)
 
             with torch.no_grad():
-                logits = model(input_ids, segment_ids, input_mask, valid_ids=valid_ids, attention_mask_label=l_mask)
+                logits = model(input_ids, input_mask, valid_ids=valid_ids, attention_mask_label=l_mask)
 
             logits = torch.argmax(F.log_softmax(logits, dim=2), dim=2)
             logits = logits.detach().cpu().numpy()
@@ -752,12 +700,13 @@ def trainRoberta(output_dir, train_batch_size, do_train, num_train_epochs, use_c
             input_mask = input_mask.to('cpu').numpy()
 
             for i, label in enumerate(label_ids):
+                
                 temp_1 = []
                 temp_2 = []
-                for j, m in enumerate(label):
+                for m, j in enumerate(label):
                     if j == 0:
                         continue
-                    elif label_ids[i][j] == len(label_map):
+                    elif label_ids[i][j] == len(label_map) or label_ids[i][j] ==0 :
                         y_true.append(temp_1)
                         y_pred.append(temp_2)
                         break
