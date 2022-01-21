@@ -392,15 +392,36 @@ def tiggerreplacejson(jsonPath):
             sentence= data['tokens']
             label= data['ner_tags']
             pos=0
-            for word in sentence:
+            for i in range(0,len(sentence)):
+                word=sentence[i]
                 if word in trigger:
                     label[pos]=2
+                else:
+                    for trig in trigger:
+                         if word in trig:
+                             if word==trig.split()[0]:
+                                 trigbool=True
+                                 for j in range (1,len(trig.split())):
+                                     if(len(sentence)>i+j):
+                                         if sentence[i+j]==trig.split()[j]:
+                                             continue
+                                         else:
+                                           trigbool=False
+                                           break
+                                     else:
+                                           trigbool=False
+                                           break 
+                                 if trigbool:
+                                     for j in range (0,len(trig.split())):
+                                         label[pos+j]=2
             datase={"id":data['id'],"tokens":sentence,"ner_tags":label}
             dataset.append(datase)
     with open(jsonPath,'w')as outfile:
         for entry in dataset:
             json.dump(entry, outfile)
             outfile.write('\n')
+
+
 
 #fonction qui met tous les paragraphe dans une autre fonction de maniere aleatoire
 def shuffleFile(file1,file2,file3):
