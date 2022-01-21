@@ -140,6 +140,53 @@ class InputExample(object):
         self.label = label
 
 
+class Nertrain(RobertaForTokenClassification):
+
+    def forward(self, input_ids, token_type_ids=None, attention_mask=None, labels=None, valid_ids=None,
+                attention_mask_label=None):
+        sequence_output = self.bert(input_ids, token_type_ids, attention_mask, head_mask=None)[0]
+        batch_size, max_len, feat_dim = sequence_output.shape
+        valid_output = torch.zeros(batch_size, max_len, feat_dim, dtype=torch.float32, device=device)
+        for i in range(batch_size):
+            jj = -1
+            for j in range(max_len):
+                if valid_ids[i][j].item() == 1:
+                    jj += 1
+                    valid_output[i][jj] = sequence_output[i][j]
+        sequence_output = self.dropout(valid_output)
+        logits = self.classifier(sequence_output)
+
+        if labels is not None:
+            loss_fct = nn.CrossEntropyLoss(ignore_index=0)
+            # Only keep active parts of the loss
+            # attention_mask_label = None
+            if attention_mask_label is not None:
+                active_loss = attention_mask_label.view(-1) == 1
+                active_logits = logits.view(-1, self.num_labels)[active_loss]
+                active_labels = labels.view(-1)[active_loss]
+                loss = loss_fct(active_logits, active_labels)
+            else:
+                loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
+            return loss
+        else:
+            return logits
+
+
+class RoBertNer(RobertaForTokenClassification):
+
+    def forward(self, input_ids, token_type_ids=None, attention_mask=None, valid_ids=None):
+        sequence_output = self.bert(input_ids, token_type_ids, attention_mask, head_mask=None)[0]
+        batch_size,max_len,feat_dim = sequence_output.shape
+        valid_output = torch.zeros(batch_size,max_len,feat_dim,dtype=torch.float32,device='cuda' if torch.cuda.is_available() else 'cpu')
+        for i in range(batch_size):
+            jj = -1
+            for j in range(max_len):
+                    if valid_ids[i][j].item() == 1:
+                        jj += 1
+                        valid_output[i][jj] = sequence_output[i][j]
+        sequence_output = self.dropout(valid_output)
+        logits = self.classifier(sequence_output)
+        return logits
 class InputFeatures(object):
     """A single set of features of data."""
 
@@ -152,29 +199,22 @@ class InputFeatures(object):
         self.label_mask = label_mask
 
 
+
 def readfile(filename):
     '''
     read file
     '''
-    f = open(filename)
-    data = []
-    sentence = []
-    label = []
-    for line in f:
-        if len(line) == 0 or line.startswith('-DOCSTART') or line[0] == "\n":
-            if len(sentence) > 0:
-                data.append((sentence, label))
-                sentence = []
-                label = []
-            continue
-        splits = line.split(' ')
-        sentence.append(splits[0])
-        label.append(splits[-1][:-1])
-
-    if len(sentence) > 0:
-        data.append((sentence, label))
-        sentence = []
-        label = []
+    data=[]
+    label=['LOCATION', 'CONTENT', 'TRIGGER', 'MODAL', 'ACTION','O']
+    with open(filename, 'r') as f:
+        for jsonObj in f:
+            jsontxt = json.loads(jsonObj)
+            lab=jsontxt["ner_tags"]
+            tupelab=[]
+            for num in lab:
+                tupelab.append(label[num])
+            tup=(jsontxt["tokens"],tupelab)
+            data.append(tup)
     return data
 
 
@@ -205,20 +245,15 @@ class NerProcessor(DataProcessor):
     def get_train_examples(self, data_dir):
         """See base class."""
         return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "train.txt")), "train")
+            self._read_tsv(os.path.join(data_dir, "train.json")), "train")
 
     def get_dev_examples(self, data_dir):
         """See base class."""
         return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "valid.txt")), "dev")
-
-    def get_test_examples(self, data_dir):
-        """See base class."""
-        return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "test.txt")), "test")
+            self._read_tsv(os.path.join(data_dir, "valid.json")), "dev")
 
     def get_labels(self):
-        return  ['LOCATION','CONTENT', 'TRIGGER', 'MODAL', 'ACTION','O','[CLS]','[SEP]']
+        return  ['LOCATION','CONTENT', 'TRIGGER', 'MODAL', 'ACTION','O']
 
     def _create_examples(self, lines, set_type):
         examples = []
@@ -505,7 +540,7 @@ def trainRoberta(output_dir, train_batch_size, do_train, num_train_epochs, use_c
 
     # Prepare model
     config = RobertaConfig.from_pretrained(roberta_model, num_labels=num_labels, finetuning_task=task_name)
-    model = RobertaForTokenClassification.from_pretrained(roberta_model, from_tf=False, config=config)
+    model = Nertrain.from_pretrained(roberta_model, from_tf=False, config=config)
 
     if local_rank == 0:
         torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab
