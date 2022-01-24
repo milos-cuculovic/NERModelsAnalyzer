@@ -35,10 +35,10 @@ device = 'cpu'
 
 def trainROBERTAModel(jsonfile, output_dir, nIter, use_cuda):
 
-    learning_rate       = 2e-05
-    weight_decay        = 0.001
+    learning_rate       = 2.2e-05
+    weight_decay        = 0.01
     warmup_proportion   = 0.1
-    train_batch_size    = 2
+    train_batch_size    = 10
 
     # INITIAL
     removEsc(os.path.abspath(jsonfile))
@@ -277,14 +277,14 @@ def loopRobertahyperparam(output_dir,num_train_epochs,use_cuda):
 
     list1_permutations = list(itertools.product(*hyperparam))
 
-    # for listtool in list1_permutations:
-    #     i+= 1
-    #     weight = listtool[0]
-    #     learning = listtool[1]
-    #     warm = listtool[2]
-    #     trainbs = listtool[3]
+    for listtool in list1_permutations:
+        i+= 1
+        weight = listtool[0]
+        learning = listtool[1]
+        warm = listtool[2]
+        trainbs = listtool[3]
 
-    #     trainRoberta(output_dir, trainbs, True, num_train_epochs, use_cuda, True, i, learning, weight, warm)
+        trainRoberta(output_dir, trainbs, True, num_train_epochs, use_cuda, True, i, learning, weight, warm)
 
     compareauto(len(list1_permutations), output_dir)
 
