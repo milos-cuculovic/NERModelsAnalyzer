@@ -5,7 +5,6 @@ Created on Fri Jun 25 17:49:48 2021
 
 @author: chams
 """
-from datasets import load_dataset, Features, Sequence, Value,ClassLabel
 import os
 import torch.optim as optim # the sub-library containing the common optimizers (SGD, Adam, etc.)
 from torch import nn
@@ -27,20 +26,7 @@ from seqeval.metrics import classification_report
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, TensorDataset, SequentialSampler, RandomSampler
 from torch.utils.data.distributed import DistributedSampler
-from nltk import word_tokenize
 from bertconf import removEsc, sentenceMean, json_conll, trigConll, crossval,json_jsonbis,tiggerreplacejson
-
-trigger = ['why', 'on the contrary','what','however','either','while','rather','instead of', 'when',
-         'in order to','therefore','not only', 'afterwards','once again','or','in order to','in particular',
-         'also','if not','if not then','not only','albeit','because','is that','that','without','who',
-         'whether','is it', 'was it','such as','were they','are they','thus','again','given that','given the',
-         'how many','except','nor','both','whose','especialls','for instance','is this','similarly','were there',
-         'are there','is there','for the time being','based on','in particular','as currently','perhaps','once',
-         'how','otherwise','particularly','overall','although','prior to','At the same time',
-         'neither','apart from','besides from','if necessary','hence','how much','by doing so','since','how less'
-         'despite','accordingly','etc','always','what kind','unless','which one','if not','if so','even if',
-         'not just','not only','besides','after all','generally','similar to','too','like']
-
 
 
 
@@ -291,14 +277,14 @@ def loopRobertahyperparam(output_dir,num_train_epochs,use_cuda):
 
     list1_permutations = list(itertools.product(*hyperparam))
 
-    for listtool in list1_permutations:
-        i+= 1
-        weight = listtool[0]
-        learning = listtool[1]
-        warm = listtool[2]
-        trainbs = listtool[3]
+    # for listtool in list1_permutations:
+    #     i+= 1
+    #     weight = listtool[0]
+    #     learning = listtool[1]
+    #     warm = listtool[2]
+    #     trainbs = listtool[3]
 
-        trainRoberta(output_dir, trainbs, True, num_train_epochs, use_cuda, True, i, learning, weight, warm)
+    #     trainRoberta(output_dir, trainbs, True, num_train_epochs, use_cuda, True, i, learning, weight, warm)
 
     compareauto(len(list1_permutations), output_dir)
 
@@ -307,24 +293,24 @@ def compareauto(sizecombine,filename):
     recall=[0,0]
     f1score=[0,0]
     for i in range(1,sizecombine+1):
-       with open(filename+str(1)+"/eval_results.txt") as file:
-            for line in file:
-                line[0].split()
+           print(i)
+           with open(filename+str(i)+"/eval_results.txt") as file:
                 for line in file:
-                 # print(line)
-                     listword=line.split()
-                     if len(listword)>0:
-                         # print(listword)
-                         if listword[0]=="micro":
-                            if precision[1]<float(listword[2]):
-                                  precision[1]=float(listword[2])
-                                  precision[0]=i
-                            if recall[1]<float(listword[3]):
-                                  recall[1]=float(listword[3])
-                                  recall[0]=i
-                            if f1score[1]<float(listword[4]):
-                                  f1score[1]=float(listword[4])
-                                  f1score[0]=i
+                         listword=line.split()
+                         if len(listword)>0:
+                             # print(listword)
+                             if listword[0]=="micro":
+                                print(listword[2])
+                                if precision[1]<float(listword[2]):
+                                      precision[1]=float(listword[2])
+                                      precision[0]=i
+                                if recall[1]<float(listword[3]):
+                                      recall[1]=float(listword[3])
+                                      recall[0]=i
+                                if f1score[1]<float(listword[4]):
+                                      f1score[1]=float(listword[4])
+                                      f1score[0]=i
+                    
     print("precision n "+str(precision[0]))
     print("recall n "+str(recall[0]))
     print("f1score n " +str(f1score[0]))
