@@ -28,6 +28,7 @@ from torch.utils.data import DataLoader, TensorDataset, SequentialSampler, Rando
 from torch.utils.data.distributed import DistributedSampler
 from bertconf import removEsc, sentenceMean, json_conll, trigConll, crossval,json_jsonbis,tiggerreplacejson
 
+import shutil
 
 
 device = 'cpu'
@@ -43,8 +44,8 @@ def trainROBERTAModel(jsonfile, output_dir, nIter, use_cuda):
     # INITIAL
     removEsc(os.path.abspath(jsonfile))
 
-    # STEP ONE cross validation
-    crossval(os.path.abspath(jsonfile), os.path.abspath(""))
+    # # STEP ONE cross validation
+    # crossval(os.path.abspath(jsonfile), os.path.abspath(""))
 
     # STEP TWO remove sentence without action and location
     sentenceMean(os.path.abspath("train1.json"))
@@ -58,7 +59,7 @@ def trainROBERTAModel(jsonfile, output_dir, nIter, use_cuda):
     tiggerreplacejson(os.path.abspath("valid.json"))
     # trigConll(os.path.abspath("train.txt"), trigger)
     # trigConll(os.path.abspath("valid.txt"), trigger)
-
+    
     global device
     if use_cuda == True:
         device = "cuda"
@@ -72,8 +73,8 @@ def trainROBERTAGrid(jsonfile, output_dir, nIter, use_cuda):
     # INITIAL
     removEsc(os.path.abspath(jsonfile))
 
-    # STEP ONE cross validation
-    crossval(os.path.abspath(jsonfile), os.path.abspath(""))
+    # # STEP ONE cross validation
+    # crossval(os.path.abspath(jsonfile), os.path.abspath(""))
 
     # STEP TWO remove sentence without action and location
     sentenceMean(os.path.abspath("train1.json"))
@@ -87,7 +88,7 @@ def trainROBERTAGrid(jsonfile, output_dir, nIter, use_cuda):
     tiggerreplacejson(os.path.abspath("valid.json"))
     # trigConll(os.path.abspath("train.txt"), trigger)
     # trigConll(os.path.abspath("valid.txt"), trigger)
-
+   
     global device
     if use_cuda == True:
         device = "cuda"
@@ -496,12 +497,14 @@ def trainRoberta(output_dir, train_batch_size, do_train, num_train_epochs, use_c
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
+    
     output_dir=output_dir+str(indexEval)
     if os.path.exists(output_dir) and os.listdir(output_dir) and do_train:
         raise ValueError("Output directory ({}) already exists and is not empty.".format(output_dir))
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-
+    files = os.path.abspath("valid.json")
+    shutil.copy(files, os.path.abspath(output_dir))
     task_name = "ner".lower()
 
     processor = processors[task_name]()
@@ -636,6 +639,7 @@ def trainRoberta(output_dir, train_batch_size, do_train, num_train_epochs, use_c
         plt.show()
 
         plt.savefig(output_dir + '/losses.png')
+        
     else:
         # Load a trained model and vocabulary that you have fine-tuned
         model = Nertrain.from_pretrained(output_dir)

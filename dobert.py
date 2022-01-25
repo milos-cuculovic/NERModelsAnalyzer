@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 """
 Created on Fri Jun 25 17:49:48 2021
-
 @author: chams
 """
 
@@ -18,7 +17,7 @@ from pytorch_transformers import (AdamW,
                                   WarmupLinearSchedule)
 from transformers import pipeline, AutoModelForTokenClassification
 from transformers import BertConfig
-
+import shutil
 import torch
 from tqdm import tqdm, trange
 from seqeval.metrics import classification_report
@@ -187,8 +186,8 @@ def trainBERTModel(jsonfile, output_dir, nIter, use_cuda):
     # INITIAL
     removEsc(os.path.abspath(jsonfile))
 
-    # STEP ONE cross validation
-    crossval(os.path.abspath(jsonfile), os.path.abspath(""))
+    # # STEP ONE cross validation
+    # crossval(os.path.abspath(jsonfile), os.path.abspath(""))
 
     # STEP TWO remove sentence without action and location
     sentenceMean(os.path.abspath("train1.json"))
@@ -214,8 +213,8 @@ def trainBERTGrid(jsonfile, output_dir, nIter, use_cuda):
     # INITIAL
     removEsc(os.path.abspath(jsonfile))
 
-    # STEP ONE cross validation
-    crossval(os.path.abspath(jsonfile), os.path.abspath(""))
+    # # STEP ONE cross validation
+    # crossval(os.path.abspath(jsonfile), os.path.abspath(""))
 
     # STEP TWO remove sentence without action and location
     sentenceMean(os.path.abspath("train1.json"))
@@ -608,6 +607,8 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
+    files = os.path.abspath("valid.json")
+    shutil.copy(files, os.path.abspath(output_dir))
     task_name = "ner".lower()
 
     processor = processors[task_name]()
@@ -819,6 +820,3 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
             logger.info("train batch size:"+str(train_batch_size))
             logger.info("\n%s", report)
             writer.write(report)
-
-
-
