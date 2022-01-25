@@ -1,9 +1,4 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Jun 25 17:49:48 2021
-@author: chams
-"""
+""
 
 import os
 from torch import nn
@@ -17,7 +12,9 @@ from pytorch_transformers import (AdamW,
                                   WarmupLinearSchedule)
 from transformers import pipeline, AutoModelForTokenClassification
 from transformers import BertConfig
-import shutil
+from transformers import pipeline, AutoModelForTokenClassification
+from transformers import BertTokenizer, BertForTokenClassification
+
 import torch
 from tqdm import tqdm, trange
 from seqeval.metrics import classification_report
@@ -25,7 +22,13 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader, TensorDataset, SequentialSampler, RandomSampler
 from torch.utils.data.distributed import DistributedSampler
 from nltk import word_tokenize
+import torch.distributed as dist
+import torch.multiprocessing as mp
+import torch.nn as nn
+import torch.optim as optim
+from torch.nn.parallel import DistributedDataParallel as DDP
 from bertconf import removEsc, sentenceMean, json_conll, trigConll, crossval
+import shutil
 
 trigger = ['why', 'on the contrary','what','however','either','while','rather','instead of', 'when',
          'in order to','therefore','not only', 'afterwards','once again','or','in order to','in particular',
@@ -183,8 +186,8 @@ def trainBERTModel(jsonfile, output_dir, nIter, use_cuda):
     warmup_proportion   = 0.1
     train_batch_size    = 26
 
-    # INITIAL
-    removEsc(os.path.abspath(jsonfile))
+    # # INITIAL
+    # removEsc(os.path.abspath(jsonfile))
 
     # # STEP ONE cross validation
     # crossval(os.path.abspath(jsonfile), os.path.abspath(""))
@@ -213,8 +216,8 @@ def trainBERTGrid(jsonfile, output_dir, nIter, use_cuda):
     # INITIAL
     removEsc(os.path.abspath(jsonfile))
 
-    # # STEP ONE cross validation
-    # crossval(os.path.abspath(jsonfile), os.path.abspath(""))
+    # STEP ONE cross validation
+    crossval(os.path.abspath(jsonfile), os.path.abspath(""))
 
     # STEP TWO remove sentence without action and location
     sentenceMean(os.path.abspath("train1.json"))
@@ -606,9 +609,9 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
         raise ValueError("Output directory ({}) already exists and is not empty.".format(output_dir))
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-
     files = os.path.abspath("valid.json")
     shutil.copy(files, os.path.abspath(output_dir))
+
     task_name = "ner".lower()
 
     processor = processors[task_name]()

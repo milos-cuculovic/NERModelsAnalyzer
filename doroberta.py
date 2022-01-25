@@ -42,23 +42,23 @@ def trainROBERTAModel(jsonfile, output_dir, nIter, use_cuda):
     train_batch_size    = 10
 
     # INITIAL
-    removEsc(os.path.abspath(jsonfile))
+    # removEsc(os.path.abspath(jsonfile))
 
     # # STEP ONE cross validation
     # crossval(os.path.abspath(jsonfile), os.path.abspath(""))
 
-    # STEP TWO remove sentence without action and location
-    sentenceMean(os.path.abspath("train1.json"))
+    # # STEP TWO remove sentence without action and location
+    # sentenceMean(os.path.abspath("train1.json"))
 
-    # STEP THREE convert json to conll
-    json_jsonbis(os.path.abspath("train1.json"), os.path.abspath("train.json"))
-    json_jsonbis(os.path.abspath("valid1.json"), os.path.abspath("valid.json"))
+    # # STEP THREE convert json to conll
+    # json_jsonbis(os.path.abspath("train1.json"), os.path.abspath("train.json"))
+    # json_jsonbis(os.path.abspath("valid1.json"), os.path.abspath("valid.json"))
 
-    # # STEP FOUR REPLACE TRIGGER
-    tiggerreplacejson(os.path.abspath("train.json"))
-    tiggerreplacejson(os.path.abspath("valid.json"))
-    # trigConll(os.path.abspath("train.txt"), trigger)
-    # trigConll(os.path.abspath("valid.txt"), trigger)
+    # # # STEP FOUR REPLACE TRIGGER
+    # tiggerreplacejson(os.path.abspath("train.json"))
+    # tiggerreplacejson(os.path.abspath("valid.json"))
+    # # trigConll(os.path.abspath("train.txt"), trigger)
+    # # trigConll(os.path.abspath("valid.txt"), trigger)
     
     global device
     if use_cuda == True:
@@ -71,21 +71,21 @@ def trainROBERTAModel(jsonfile, output_dir, nIter, use_cuda):
     
 def trainROBERTAGrid(jsonfile, output_dir, nIter, use_cuda):
     # INITIAL
-    removEsc(os.path.abspath(jsonfile))
+    # removEsc(os.path.abspath(jsonfile))
 
     # # STEP ONE cross validation
     # crossval(os.path.abspath(jsonfile), os.path.abspath(""))
 
-    # STEP TWO remove sentence without action and location
-    sentenceMean(os.path.abspath("train1.json"))
+    # # STEP TWO remove sentence without action and location
+    # sentenceMean(os.path.abspath("train1.json"))
 
-    # STEP THREE convert json to conll
-    json_jsonbis(os.path.abspath("train1.json"), os.path.abspath("train.json"))
-    json_jsonbis(os.path.abspath("valid1.json"), os.path.abspath("valid.json"))
+    # # STEP THREE convert json to conll
+    # json_jsonbis(os.path.abspath("train1.json"), os.path.abspath("train.json"))
+    # json_jsonbis(os.path.abspath("valid1.json"), os.path.abspath("valid.json"))
 
-    # # STEP FOUR REPLACE TRIGGER
-    tiggerreplacejson(os.path.abspath("train.json"))
-    tiggerreplacejson(os.path.abspath("valid.json"))
+    # # # STEP FOUR REPLACE TRIGGER
+    # tiggerreplacejson(os.path.abspath("train.json"))
+    # tiggerreplacejson(os.path.abspath("valid.json"))
     # trigConll(os.path.abspath("train.txt"), trigger)
     # trigConll(os.path.abspath("valid.txt"), trigger)
    
