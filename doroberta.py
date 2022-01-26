@@ -687,7 +687,10 @@ def trainRoberta(output_dir, train_batch_size, do_train, num_train_epochs, use_c
             logits = logits.detach().cpu().numpy()
             label_ids = label_ids.to('cpu').numpy()
             input_mask = input_mask.to('cpu').numpy()
-
+            # print("id")
+            # print(label_ids)
+            # print("map")
+            # print(label_map)
             for i, label in enumerate(label_ids):
                 
                 temp_1 = []
@@ -696,14 +699,15 @@ def trainRoberta(output_dir, train_batch_size, do_train, num_train_epochs, use_c
                     if j == 0:
                         continue
                     elif label_ids[i][j] == len(label_map) or label_ids[i][j] ==0 :
+                        # print(temp_2)
                         y_true.append(temp_1)
                         y_pred.append(temp_2)
                         break
                     else:
+                        # print(label_map[label_ids[i][j]])
                         temp_1.append(label_map[label_ids[i][j]])
                         temp_2.append(label_map[logits[i][j]])
                         
-
         report = classification_report(y_true, y_pred, digits=4)
         logger.info("\n%s", report)
         output_eval_file = os.path.join(output_dir, "eval_results.txt")
@@ -715,3 +719,7 @@ def trainRoberta(output_dir, train_batch_size, do_train, num_train_epochs, use_c
             logger.info("train batch size:"+str(train_batch_size))
             logger.info("\n%s", report)
             writer.write(report)
+            writer.write("\n weight_decay:"+str(weight_decay))
+            writer.write("\n learning_rate:"+str(learning_rate))
+            writer.write("\n warmup:"+str(warmup_proportion))
+            writer.write("\n train batch size:"+str(train_batch_size))            
