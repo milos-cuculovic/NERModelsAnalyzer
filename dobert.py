@@ -1,20 +1,15 @@
 ""
 
 import os
-from torch import nn
 import json
 import logging
 import random
 import numpy as np
 import matplotlib.pyplot as plt
-from pytorch_transformers import (AdamW,
-                                  BertForTokenClassification, BertTokenizer,
-                                  WarmupLinearSchedule)
-from transformers import pipeline, AutoModelForTokenClassification
+from pytorch_transformers import (AdamW, BertTokenizer, WarmupLinearSchedule)
 from transformers import BertConfig
 from transformers import pipeline, AutoModelForTokenClassification
 from transformers import BertTokenizer, BertForTokenClassification
-
 import torch
 from tqdm import tqdm, trange
 from seqeval.metrics import classification_report
@@ -23,10 +18,7 @@ from torch.utils.data import DataLoader, TensorDataset, SequentialSampler, Rando
 from torch.utils.data.distributed import DistributedSampler
 from nltk import word_tokenize
 import torch.distributed as dist
-import torch.multiprocessing as mp
 import torch.nn as nn
-import torch.optim as optim
-from torch.nn.parallel import DistributedDataParallel as DDP
 from bertconf import removEsc, sentenceMean, json_conll, trigConll, crossval
 import shutil
 
@@ -377,9 +369,9 @@ import itertools
 
 def loopBerthyperparam(output_dir,num_train_epochs,use_cuda):
     weightdecay         = [0.1, 0.01, 0.001, 0.0001]
-    learningrate        = [2e-5, 2.2e-5, 2.4e-5, 2.6e-5, 2.8e-5, 3e-5]
+    learningrate        = [1e-3, 5e-4, 1e-4, 5e-5, 1e-5]
     warmupproportion    = [0.1]
-    trainbatchsize      = [32, 30, 28, 26, 24, 22, 20, 18, 16]
+    trainbatchsize      = [512, 256, 128, 64, 32, 16, 8]
     hyperparam          = [weightdecay, learningrate, warmupproportion, trainbatchsize]
     i                   = 0
 
@@ -760,7 +752,6 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
     if do_eval and (local_rank == -1 or torch.distributed.get_rank() == 0):
 
         eval_examples = processor.get_dev_examples("")
-        eval_examples = processor.get_dev_examples("")
         eval_features = convert_examples_to_features(eval_examples, label_list, max_seq_length, tokenizer)
         logger.info("***** Running evaluation *****")
         logger.info("  Num examples = %d", len(eval_examples))
@@ -810,7 +801,7 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
                     else:
                         temp_1.append(label_map[label_ids[i][j]])
                         temp_2.append(label_map[logits[i][j]])
-                        
+
 
         report = classification_report(y_true, y_pred, digits=4)
         logger.info("\n%s", report)
