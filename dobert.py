@@ -21,6 +21,7 @@ import torch.distributed as dist
 import torch.nn as nn
 from bertconf import removEsc, sentenceMean, json_conll, trigConll, crossval
 import shutil
+import cf_matrix
 
 trigger = ['why', 'on the contrary','what','however','either','while','rather','instead of', 'when',
          'in order to','therefore','not only', 'afterwards','once again','or','in order to','in particular',
@@ -804,6 +805,10 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
 
 
         report = classification_report(y_true, y_pred, digits=4)
+        print(y_true[1])
+        flat_y_true=[i for j in y_true for i in j]
+        flat_y_pred=[i for j in y_pred for i in j]
+        cf_matrix.generate_plotly_cf_mat(flat_y_true, flat_y_pred, label_map, "confusion_matrix.html",  "./visualizations")
         logger.info("\n%s", report)
         output_eval_file = os.path.join(output_dir, "eval_results.txt")
         with open(output_eval_file, "w") as writer:
