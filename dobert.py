@@ -394,7 +394,7 @@ def compareauto(sizecombine,filename):
     recall=[0,0]
     f1score=[0,0]
     for i in range(1,sizecombine+1):
-       with open(filename+str(1)+"/eval_results.txt") as file:
+       with open(filename+str(i)+"/eval_results.txt") as file:
             for line in file:
                 line[0].split()
                 for line in file:
