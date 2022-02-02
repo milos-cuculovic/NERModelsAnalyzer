@@ -178,22 +178,22 @@ def trainBERTModel(jsonfile, output_dir, nIter, use_cuda):
     warmup_proportion   = 0.1
     train_batch_size    = 16
 
-    # INITIAL
-    removEsc(os.path.abspath(jsonfile))
+    # # INITIAL
+    # removEsc(os.path.abspath(jsonfile))
 
-    # STEP ONE cross validation
-    crossval(os.path.abspath(jsonfile), os.path.abspath(""))
+    # # STEP ONE cross validation
+    # crossval(os.path.abspath(jsonfile), os.path.abspath(""))
 
-    # # STEP TWO remove sentence without action and location
-    # sentenceMean(os.path.abspath("train1.json"))
+    # # # STEP TWO remove sentence without action and location
+    # # sentenceMean(os.path.abspath("train1.json"))
 
-    # STEP THREE convert json to conll
-    json_conll(os.path.abspath("train1.json"), os.path.abspath(""), 'train.txt')
-    json_conll(os.path.abspath("valid1.json"), os.path.abspath(""), 'valid.txt')
+    # # STEP THREE convert json to conll
+    # json_conll(os.path.abspath("train1.json"), os.path.abspath(""), 'train.txt')
+    # json_conll(os.path.abspath("valid1.json"), os.path.abspath(""), 'valid.txt')
 
-    # STEP FOUR REPLACE TRIGGER
-    trigConll(os.path.abspath("train.txt"), trigger)
-    trigConll(os.path.abspath("valid.txt"), trigger)
+    # # STEP FOUR REPLACE TRIGGER
+    # trigConll(os.path.abspath("train.txt"), trigger)
+    # trigConll(os.path.abspath("valid.txt"), trigger)
 
     global device
     if use_cuda == True:
@@ -206,21 +206,21 @@ def trainBERTModel(jsonfile, output_dir, nIter, use_cuda):
     
 def trainBERTGrid(jsonfile, output_dir, nIter, use_cuda):
     #INITIAL
-    removEsc(os.path.abspath(jsonfile))
+    # removEsc(os.path.abspath(jsonfile))
 
-    # STEP ONE cross validation
-    crossval(os.path.abspath(jsonfile), os.path.abspath(""))
+    # # STEP ONE cross validation
+    # crossval(os.path.abspath(jsonfile), os.path.abspath(""))
 
-    # STEP TWO remove sentence without action and location
-    sentenceMean(os.path.abspath("train1.json"))
+    # # STEP TWO remove sentence without action and location
+    # sentenceMean(os.path.abspath("train1.json"))
 
-    # STEP THREE convert json to conll
-    json_conll(os.path.abspath("train1.json"), os.path.abspath(""), 'train.txt')
-    json_conll(os.path.abspath("valid1.json"), os.path.abspath(""), 'valid.txt')
+    # # STEP THREE convert json to conll
+    # json_conll(os.path.abspath("train1.json"), os.path.abspath(""), 'train.txt')
+    # json_conll(os.path.abspath("valid1.json"), os.path.abspath(""), 'valid.txt')
 
-    # STEP FOUR REPLACE TRIGGER
-    trigConll(os.path.abspath("train.txt"), trigger)
-    trigConll(os.path.abspath("valid.txt"), trigger)
+    # # STEP FOUR REPLACE TRIGGER
+    # trigConll(os.path.abspath("train.txt"), trigger)
+    # trigConll(os.path.abspath("valid.txt"), trigger)
 
     global device
     if use_cuda == True:
