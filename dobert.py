@@ -819,3 +819,4 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
             logger.info("train batch size:"+str(train_batch_size))
             logger.info("\n%s", report)
             writer.write(report)
+            #test
