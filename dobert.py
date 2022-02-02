@@ -1,5 +1,5 @@
 ""
-
+import cf_matrix
 import os
 import json
 import logging
@@ -21,7 +21,6 @@ import torch.distributed as dist
 import torch.nn as nn
 from bertconf import removEsc, sentenceMean, json_conll, trigConll, crossval
 import shutil
-import cf_matrix
 
 trigger = ['why', 'on the contrary','what','however','either','while','rather','instead of', 'when',
          'in order to','therefore','not only', 'afterwards','once again','or','in order to','in particular',
@@ -174,27 +173,27 @@ device = 'cpu'
 
 def trainBERTModel(jsonfile, output_dir, nIter, use_cuda):
 
-    learning_rate       = 2e-05
-    weight_decay        = 0.001
+    learning_rate       = 0.0001
+    weight_decay        = 0.1
     warmup_proportion   = 0.1
-    train_batch_size    = 26
+    train_batch_size    = 16
 
-    # # INITIAL
-    # removEsc(os.path.abspath(jsonfile))
+    # INITIAL
+    removEsc(os.path.abspath(jsonfile))
 
-    # # STEP ONE cross validation
-    # crossval(os.path.abspath(jsonfile), os.path.abspath(""))
+    # STEP ONE cross validation
+    crossval(os.path.abspath(jsonfile), os.path.abspath(""))
 
     # # STEP TWO remove sentence without action and location
     # sentenceMean(os.path.abspath("train1.json"))
 
-    # # STEP THREE convert json to conll
-    # json_conll(os.path.abspath("train1.json"), os.path.abspath(""), 'train.txt')
-    # json_conll(os.path.abspath("valid1.json"), os.path.abspath(""), 'valid.txt')
+    # STEP THREE convert json to conll
+    json_conll(os.path.abspath("train1.json"), os.path.abspath(""), 'train.txt')
+    json_conll(os.path.abspath("valid1.json"), os.path.abspath(""), 'valid.txt')
 
-    # # STEP FOUR REPLACE TRIGGER
-    # trigConll(os.path.abspath("train.txt"), trigger)
-    # trigConll(os.path.abspath("valid.txt"), trigger)
+    # STEP FOUR REPLACE TRIGGER
+    trigConll(os.path.abspath("train.txt"), trigger)
+    trigConll(os.path.abspath("valid.txt"), trigger)
 
     global device
     if use_cuda == True:
@@ -206,7 +205,7 @@ def trainBERTModel(jsonfile, output_dir, nIter, use_cuda):
               weight_decay, warmup_proportion)
     
 def trainBERTGrid(jsonfile, output_dir, nIter, use_cuda):
-    # INITIAL
+    #INITIAL
     removEsc(os.path.abspath(jsonfile))
 
     # STEP ONE cross validation
@@ -415,6 +414,9 @@ def compareauto(sizecombine,filename):
     print("precision n "+str(precision[0]))
     print("recall n "+str(recall[0]))
     print("f1score n " +str(f1score[0]))
+
+
+
                   
 def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer):
     """Loads a data file into a list of `InputBatch`s."""
@@ -819,4 +821,3 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
             logger.info("train batch size:"+str(train_batch_size))
             logger.info("\n%s", report)
             writer.write(report)
-            #test
