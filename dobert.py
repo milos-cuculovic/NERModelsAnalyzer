@@ -173,19 +173,21 @@ device = 'cpu'
 
 def trainBERTModel(jsonfile, output_dir, nIter, use_cuda):
 
-    learning_rate       = 0.0001
+
+    learning_rate       = 0.0005
     weight_decay        = 0.1
     warmup_proportion   = 0.1
-    train_batch_size    = 16
+    train_batch_size    = 64
 
+    
     # INITIAL
     removEsc(os.path.abspath(jsonfile))
 
     # STEP ONE cross validation
     crossval(os.path.abspath(jsonfile), os.path.abspath(""))
 
-    # # STEP TWO remove sentence without action and location
-    # sentenceMean(os.path.abspath("train1.json"))
+    # # # STEP TWO remove sentence without action and location
+    # # sentenceMean(os.path.abspath("train1.json"))
 
     # STEP THREE convert json to conll
     json_conll(os.path.abspath("train1.json"), os.path.abspath(""), 'train.txt')
@@ -206,21 +208,23 @@ def trainBERTModel(jsonfile, output_dir, nIter, use_cuda):
     
 def trainBERTGrid(jsonfile, output_dir, nIter, use_cuda):
     #INITIAL
-    removEsc(os.path.abspath(jsonfile))
 
-    # STEP ONE cross validation
-    crossval(os.path.abspath(jsonfile), os.path.abspath(""))
+    # removEsc(os.path.abspath(jsonfile))
 
-    # STEP TWO remove sentence without action and location
-    sentenceMean(os.path.abspath("train1.json"))
 
-    # STEP THREE convert json to conll
-    json_conll(os.path.abspath("train1.json"), os.path.abspath(""), 'train.txt')
-    json_conll(os.path.abspath("valid1.json"), os.path.abspath(""), 'valid.txt')
+    # # STEP ONE cross validation
+    # crossval(os.path.abspath(jsonfile), os.path.abspath(""))
 
-    # STEP FOUR REPLACE TRIGGER
-    trigConll(os.path.abspath("train.txt"), trigger)
-    trigConll(os.path.abspath("valid.txt"), trigger)
+    # # STEP TWO remove sentence without action and location
+    # sentenceMean(os.path.abspath("train1.json"))
+
+    # # STEP THREE convert json to conll
+    # json_conll(os.path.abspath("train1.json"), os.path.abspath(""), 'train.txt')
+    # json_conll(os.path.abspath("valid1.json"), os.path.abspath(""), 'valid.txt')
+
+    # # STEP FOUR REPLACE TRIGGER
+    # trigConll(os.path.abspath("train.txt"), trigger)
+    # trigConll(os.path.abspath("valid.txt"), trigger)
 
     global device
     if use_cuda == True:
@@ -339,7 +343,7 @@ class NerProcessor(DataProcessor):
 
     def get_labels(self):
         return ["O", "B-LOCATION", "I-LOCATION", "B-TRIGGER", "I-TRIGGER",
-                "B-MODAL", "I-MODAL", "B-ACTION", "I-ACTION", "B-CONTENT", "I-CONTENT", "[CLS]", "[SEP]"]
+                "B-MODAL", "I-MODAL", "B-ACTION", "I-ACTION", "B-CONTENT", "I-CONTENT","[CLS]","[SEP]"]
 
     def _create_examples(self, lines, set_type):
         examples = []
@@ -447,6 +451,7 @@ def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer
                     valid.append(1)
                     label_mask.append(1)
                 else:
+                    labels.append(label_1)
                     valid.append(0)
         if len(tokens) >= max_seq_length - 1:
             tokens = tokens[0:(max_seq_length - 2)]
@@ -811,7 +816,7 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
                         temp_1.append(label_map[label_ids[i][j]])
                         temp_2.append(label_map[logits[i][j]])
 
-
+        print(y_pred)
         report = classification_report(y_true, y_pred, digits=4)
         print(y_true[1])
         flat_y_true=[i for j in y_true for i in j]
@@ -826,4 +831,11 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
             logger.info("warmup:"+str(warmup_proportion))
             logger.info("train batch size:"+str(train_batch_size))
             logger.info("\n%s", report)
+            
+            writer.write("***** Eval results *****")
+            writer.write("weight_decay:"+str(weight_decay))
+            writer.write("learning_rate:"+str(learning_rate))
+            writer.write("warmup:"+str(warmup_proportion))
+            writer.write("train batch size:"+str(train_batch_size))
+            writer.write("\n%s", report)
             writer.write(report)
