@@ -339,7 +339,7 @@ class NerProcessor(DataProcessor):
 
     def get_labels(self):
         return ["O", "B-LOCATION", "I-LOCATION", "B-TRIGGER", "I-TRIGGER",
-                "B-MODAL", "I-MODAL", "B-ACTION", "I-ACTION", "B-CONTENT", "I-CONTENT", "[CLS]", "[SEP]"]
+                "B-MODAL", "I-MODAL", "B-ACTION", "I-ACTION", "B-CONTENT", "I-CONTENT","[CLS]","[SEP]"]
 
     def _create_examples(self, lines, set_type):
         examples = []
@@ -441,6 +441,7 @@ def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer
                     valid.append(1)
                     label_mask.append(1)
                 else:
+                    labels.append(label_1)
                     valid.append(0)
         if len(tokens) >= max_seq_length - 1:
             tokens = tokens[0:(max_seq_length - 2)]
@@ -805,7 +806,7 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
                         temp_1.append(label_map[label_ids[i][j]])
                         temp_2.append(label_map[logits[i][j]])
 
-
+        print(y_pred)
         report = classification_report(y_true, y_pred, digits=4)
         print(y_true[1])
         flat_y_true=[i for j in y_true for i in j]
