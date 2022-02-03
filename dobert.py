@@ -173,10 +173,10 @@ device = 'cpu'
 
 def trainBERTModel(jsonfile, output_dir, nIter, use_cuda):
 
-    learning_rate       = 0.0001
+    learning_rate       = 0.0005
     weight_decay        = 0.1
     warmup_proportion   = 0.1
-    train_batch_size    = 16
+    train_batch_size    = 64
 
     # # INITIAL
     # removEsc(os.path.abspath(jsonfile))
@@ -821,4 +821,11 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
             logger.info("warmup:"+str(warmup_proportion))
             logger.info("train batch size:"+str(train_batch_size))
             logger.info("\n%s", report)
+            
+            writer.write("***** Eval results *****")
+            writer.write("weight_decay:"+str(weight_decay))
+            writer.write("learning_rate:"+str(learning_rate))
+            writer.write("warmup:"+str(warmup_proportion))
+            writer.write("train batch size:"+str(train_batch_size))
+            writer.write("\n%s", report)
             writer.write(report)
