@@ -173,27 +173,29 @@ device = 'cpu'
 
 def trainBERTModel(jsonfile, output_dir, nIter, use_cuda):
 
+
     learning_rate       = 0.0005
     weight_decay        = 0.1
     warmup_proportion   = 0.1
     train_batch_size    = 64
 
-    # # INITIAL
-    # removEsc(os.path.abspath(jsonfile))
+    
+    # INITIAL
+    removEsc(os.path.abspath(jsonfile))
 
-    # # STEP ONE cross validation
-    # crossval(os.path.abspath(jsonfile), os.path.abspath(""))
+    # STEP ONE cross validation
+    crossval(os.path.abspath(jsonfile), os.path.abspath(""))
 
     # # # STEP TWO remove sentence without action and location
     # # sentenceMean(os.path.abspath("train1.json"))
 
-    # # STEP THREE convert json to conll
-    # json_conll(os.path.abspath("train1.json"), os.path.abspath(""), 'train.txt')
-    # json_conll(os.path.abspath("valid1.json"), os.path.abspath(""), 'valid.txt')
+    # STEP THREE convert json to conll
+    json_conll(os.path.abspath("train1.json"), os.path.abspath(""), 'train.txt')
+    json_conll(os.path.abspath("valid1.json"), os.path.abspath(""), 'valid.txt')
 
-    # # STEP FOUR REPLACE TRIGGER
-    # trigConll(os.path.abspath("train.txt"), trigger)
-    # trigConll(os.path.abspath("valid.txt"), trigger)
+    # STEP FOUR REPLACE TRIGGER
+    trigConll(os.path.abspath("train.txt"), trigger)
+    trigConll(os.path.abspath("valid.txt"), trigger)
 
     global device
     if use_cuda == True:
@@ -206,7 +208,9 @@ def trainBERTModel(jsonfile, output_dir, nIter, use_cuda):
     
 def trainBERTGrid(jsonfile, output_dir, nIter, use_cuda):
     #INITIAL
+
     # removEsc(os.path.abspath(jsonfile))
+
 
     # # STEP ONE cross validation
     # crossval(os.path.abspath(jsonfile), os.path.abspath(""))
@@ -387,7 +391,13 @@ def loopBerthyperparam(output_dir,num_train_epochs,use_cuda):
         trainBert(output_dir, trainbs, True, num_train_epochs, use_cuda, True, i, learning, weight, warm)
 
     compareauto(len(list1_permutations), output_dir)
-
+def removeSEP(sizecombine,filename,num_train_epochs,use_cuda):
+    for i in range(1,sizecombine+1):
+       with open(filename+str(i)+"/eval_results.txt") as file:
+            for line in file:
+                if "SEP]" in line:
+                    trainBert(filename, 0, False, num_train_epochs, use_cuda, True, i, 0, 0, 0)
+                    break
 def compareauto(sizecombine,filename):
     precision=[0,0]
     recall=[0,0]
