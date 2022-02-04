@@ -1,4 +1,3 @@
-""
 import cf_matrix
 import os
 import json
@@ -173,10 +172,10 @@ device = 'cpu'
 
 def trainBERTModel(jsonfile, output_dir, nIter, use_cuda):
 
-    learning_rate       = 0.0005
+    learning_rate       = 0.0001
     weight_decay        = 0.1
     warmup_proportion   = 0.1
-    train_batch_size    = 64
+    train_batch_size    = 16
 
     # # INITIAL
     # removEsc(os.path.abspath(jsonfile))
@@ -339,7 +338,7 @@ class NerProcessor(DataProcessor):
 
     def get_labels(self):
         return ["O", "B-LOCATION", "I-LOCATION", "B-TRIGGER", "I-TRIGGER",
-                "B-MODAL", "I-MODAL", "B-ACTION", "I-ACTION", "B-CONTENT", "I-CONTENT","[CLS]","[SEP]"]
+                "B-MODAL", "I-MODAL", "B-ACTION", "I-ACTION", "B-CONTENT", "I-CONTENT", "[CLS]", "[SEP]"]
 
     def _create_examples(self, lines, set_type):
         examples = []
@@ -384,7 +383,7 @@ def loopBerthyperparam(output_dir,num_train_epochs,use_cuda):
         warm = listtool[2]
         trainbs = listtool[3]
 
-        trainBert(output_dir, trainbs, False, num_train_epochs, use_cuda, True, i, learning, weight, warm)
+        trainBert(output_dir, trainbs, True, num_train_epochs, use_cuda, True, i, learning, weight, warm)
 
     compareauto(len(list1_permutations), output_dir)
 
@@ -441,7 +440,6 @@ def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer
                     valid.append(1)
                     label_mask.append(1)
                 else:
-                    labels.append(label_1)
                     valid.append(0)
         if len(tokens) >= max_seq_length - 1:
             tokens = tokens[0:(max_seq_length - 2)]
@@ -807,7 +805,7 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
                     else:
                         temp_1.append(label_map[label_ids[i][j]])
                         lab_pred=logits[i][j]
-                        if lab_pred==13:
+                        if lab_pred==len(label_map):
                             lab_pred=1
                         temp_2.append(label_map[lab_pred])
 
