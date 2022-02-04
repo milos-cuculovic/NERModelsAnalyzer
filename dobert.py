@@ -810,7 +810,10 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
                         continue
                     elif label_ids[i][j] == len(label_map):
                         y_true.append(temp_1)
+                        temp_2=["O" if k=="[SEP]" else k for k in temp_2]
                         y_pred.append(temp_2)
+                        if ("[CLS]" in temp_2) or ("[SEP]" in temp_2):
+                            print(f"we got a problem with sample {i}" )
                         break
                     else:
                         temp_1.append(label_map[label_ids[i][j]])
