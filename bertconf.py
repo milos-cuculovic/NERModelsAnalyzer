@@ -18,6 +18,32 @@ trigger=['why', 'on the contrary','what','however','either','while','rather','in
          'neither','apart from','besides from','if necessary','hence','how much','by doing so','since','how less'
          'despite','accordingly','etc','always','what kind','unless','which one','if not','if so','even if',
          'not just','not only','besides','after all','generally','similar to','too','like']
+# 
+def listededict(jsonpath):
+    listdict=[]
+    with open(jsonpath, 'r') as open_file:
+        for jsonObj in open_file:
+            data = json.loads(jsonObj)
+            listdict.add(data)
+    return listdict
+
+def firstfiltre(jsonpath,jsonpath2,js3):
+    json_lines = []
+    json_remove=[]
+    with open(jsonpath, 'r') as open_file:
+        for jsonObj in open_file:
+            data = json.loads(jsonObj)
+            arrayagg= data['array_agg']
+            word=data['text']
+            if len(arrayagg)>1 and len(word.split(" "))>3:
+                
+                json_lines.append(jsonObj)
+            if word[len(word)-1]==':' and len(word.split(" "))>3:
+                json_remove.append(jsonObj)
+    with open(jsonpath2, 'w') as open_file:
+        open_file.writelines(''.join(json_lines))
+    with open(js3, 'w') as open_file:
+        open_file.writelines(''.join(json_remove))
 
 def crossval(jsonpath,path):
    data = [json.loads(line) for line in open(jsonpath, 'r')]
