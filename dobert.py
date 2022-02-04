@@ -173,29 +173,27 @@ device = 'cpu'
 
 def trainBERTModel(jsonfile, output_dir, nIter, use_cuda):
 
-
     learning_rate       = 0.0005
     weight_decay        = 0.1
     warmup_proportion   = 0.1
     train_batch_size    = 64
 
-    
-    # INITIAL
-    removEsc(os.path.abspath(jsonfile))
+    # # INITIAL
+    # removEsc(os.path.abspath(jsonfile))
 
-    # STEP ONE cross validation
-    crossval(os.path.abspath(jsonfile), os.path.abspath(""))
+    # # STEP ONE cross validation
+    # crossval(os.path.abspath(jsonfile), os.path.abspath(""))
 
     # # # STEP TWO remove sentence without action and location
     # # sentenceMean(os.path.abspath("train1.json"))
 
-    # STEP THREE convert json to conll
-    json_conll(os.path.abspath("train1.json"), os.path.abspath(""), 'train.txt')
-    json_conll(os.path.abspath("valid1.json"), os.path.abspath(""), 'valid.txt')
+    # # STEP THREE convert json to conll
+    # json_conll(os.path.abspath("train1.json"), os.path.abspath(""), 'train.txt')
+    # json_conll(os.path.abspath("valid1.json"), os.path.abspath(""), 'valid.txt')
 
-    # STEP FOUR REPLACE TRIGGER
-    trigConll(os.path.abspath("train.txt"), trigger)
-    trigConll(os.path.abspath("valid.txt"), trigger)
+    # # STEP FOUR REPLACE TRIGGER
+    # trigConll(os.path.abspath("train.txt"), trigger)
+    # trigConll(os.path.abspath("valid.txt"), trigger)
 
     global device
     if use_cuda == True:
@@ -208,9 +206,7 @@ def trainBERTModel(jsonfile, output_dir, nIter, use_cuda):
     
 def trainBERTGrid(jsonfile, output_dir, nIter, use_cuda):
     #INITIAL
-
     # removEsc(os.path.abspath(jsonfile))
-
 
     # # STEP ONE cross validation
     # crossval(os.path.abspath(jsonfile), os.path.abspath(""))
@@ -391,13 +387,7 @@ def loopBerthyperparam(output_dir,num_train_epochs,use_cuda):
         trainBert(output_dir, trainbs, True, num_train_epochs, use_cuda, True, i, learning, weight, warm)
 
     compareauto(len(list1_permutations), output_dir)
-def removeSEP(sizecombine,filename,num_train_epochs,use_cuda):
-    for i in range(1,sizecombine+1):
-       with open(filename+str(i)+"/eval_results.txt") as file:
-            for line in file:
-                if "SEP]" in line:
-                    trainBert(filename, 0, False, num_train_epochs, use_cuda, True, i, 0, 0, 0)
-                    break
+
 def compareauto(sizecombine,filename):
     precision=[0,0]
     recall=[0,0]
@@ -793,15 +783,17 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
             valid_ids = valid_ids.to(device)
             label_ids = label_ids.to(device)
             l_mask = l_mask.to(device)
-
+            # print(label_map)
             with torch.no_grad():
                 logits = model(input_ids, segment_ids, input_mask, valid_ids=valid_ids, attention_mask_label=l_mask)
-
+            # print(label_ids)
             logits = torch.argmax(F.log_softmax(logits, dim=2), dim=2)
             logits = logits.detach().cpu().numpy()
+            # print(logits[1])
+           
             label_ids = label_ids.to('cpu').numpy()
             input_mask = input_mask.to('cpu').numpy()
-
+            # print(label_map)
             for i, label in enumerate(label_ids):
                 temp_1 = []
                 temp_2 = []
@@ -814,11 +806,12 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
                         break
                     else:
                         temp_1.append(label_map[label_ids[i][j]])
-                        temp_2.append(label_map[logits[i][j]])
+                        lab_pred=logits[i][j]
+                        if lab_pred==13:
+                            lab_pred=1
+                        temp_2.append(label_map[lab_pred])
 
-        print(y_pred)
         report = classification_report(y_true, y_pred, digits=4)
-        print(y_true[1])
         flat_y_true=[i for j in y_true for i in j]
         flat_y_pred=[i for j in y_pred for i in j]
         cf_matrix.generate_plotly_cf_mat(flat_y_true, flat_y_pred, label_map, "confusion_matrix.html",  "./visualizations")
@@ -837,5 +830,4 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
             writer.write("learning_rate:"+str(learning_rate))
             writer.write("warmup:"+str(warmup_proportion))
             writer.write("train batch size:"+str(train_batch_size))
-            writer.write("\n%s", report)
             writer.write(report)
