@@ -370,7 +370,7 @@ def loopBerthyperparam(output_dir,num_train_epochs,use_cuda):
     weightdecay         = [0.1, 0.01, 0.001, 0.0001]
     learningrate        = [1e-3, 5e-4, 1e-4, 5e-5, 1e-5]
     warmupproportion    = [0.1]
-    trainbatchsize      = [512, 256, 128, 64, 32, 16, 8]
+    trainbatchsize      = [256, 128, 64, 32, 16, 8, 4]
     hyperparam          = [weightdecay, learningrate, warmupproportion, trainbatchsize]
     i                   = 0
 
