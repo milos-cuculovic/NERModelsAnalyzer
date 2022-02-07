@@ -24,8 +24,48 @@ def listededict(jsonpath):
     with open(jsonpath, 'r') as open_file:
         for jsonObj in open_file:
             data = json.loads(jsonObj)
-            listdict.add(data)
+            listdict.append(data)
     return listdict
+
+def concat(id1, id2, data):
+        sample={}
+        text_1=data[id1]["text"]
+        text_2=data[id2]["text"]
+        labels_1=data[id1]["array_agg"]
+        labels_2=data[id2]["array_agg"]
+        labels=labels_1
+        for lab in labels_2:
+            exlab=lab.split(",")
+            newlist=""
+            newlist+=str(int(exlab[0])+len(text_1)+1)+", "
+            newlist+=str(int(exlab[1])+len(text_1)+1)+", "
+            newlist+=str(exlab[2])
+            labels.append(newlist)
+        # print(labels)
+        sample["text"]=text_1+" "+text_2
+        sample["array_agg"]=labels
+        return sample
+
+def twoPoint(jsonfile,jsonfile1):
+    listdict=listededict(jsonfile)
+    sample=[]
+    index=0
+    concate=False
+    for sett in listdict:
+        if concate==True:
+            sample.append(concat(index-1,index,listdict))
+            concate=False
+        elif sett["text"][len(sett["text"])-1]==":":
+            # print (sett["text"])
+            concate=True
+        else:
+            sample.append(sett)
+        index+=1
+   
+    with open(jsonfile1, 'w') as fp:
+        json.dump(sample, fp)
+# twoPoint("./data-use1.json","./data-use2.json")
+    
 
 def firstfiltre(jsonpath,jsonpath2,js3):
     json_lines = []
@@ -42,11 +82,12 @@ def firstfiltre(jsonpath,jsonpath2,js3):
                 json_remove.append(jsonObj)
     with open(jsonpath2, 'w') as open_file:
         open_file.writelines(''.join(json_lines))
-    with open(js3, 'w') as open_file:
-        open_file.writelines(''.join(json_remove))
-
+        
+# firstfiltre("/home/chams/Documents/mdpi/milosphd/NER_models_reviewer_comments/data-use2.json","/home/chams/Documents/mdpi/milosphd/NER_models_reviewer_comments/data-use3.json","/home/chams/Documents/mdpi/milosphd/NER_models_reviewer_comments/data-use3.json")
 def crossval(jsonpath,path):
    data = [json.loads(line) for line in open(jsonpath, 'r')]
+   print(data)
+   data=data[0]
    train, test = train_test_split(data, test_size=0.2)
    # print(test[0]['text'])
    kf = KFold(n_splits=4, shuffle=True)
