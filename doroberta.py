@@ -270,9 +270,9 @@ import itertools
 
 def loopRobertahyperparam(output_dir,num_train_epochs,use_cuda):
     weightdecay         = [0.1, 0.01, 0.001, 0.0001]
-    learningrate        = [2e-5, 2.2e-5, 2.4e-5, 2.6e-5, 2.8e-5, 3e-5]
+    learningrate        = [1e-3, 5e-4, 1e-4, 5e-5, 1e-5]
     warmupproportion    = [0.1]
-    trainbatchsize      = [16,14,12,10,8,6,4,2]
+    trainbatchsize      = [256, 128, 64, 32, 16, 8, 4]
     hyperparam          = [weightdecay, learningrate, warmupproportion, trainbatchsize]
     i                   = 0
 
