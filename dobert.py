@@ -812,7 +812,7 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
         report = classification_report(y_true, y_pred, digits=4)
         flat_y_true=[i for j in y_true for i in j]
         flat_y_pred=[i for j in y_pred for i in j]
-        # cf_matrix.generate_plotly_cf_mat(flat_y_true, flat_y_pred, label_map, "confusion_matrix.html",  "./visualizations/")
+        cf_matrix.generate_plotly_cf_mat(flat_y_true, flat_y_pred, label_map, "confusion_matrix.html",  "./visualizations/")
         logger.info("\n%s", report)
         output_eval_file = os.path.join(output_dir, "eval_results.txt")
         with open(output_eval_file, "w") as writer:
