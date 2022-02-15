@@ -1,4 +1,4 @@
-import cf_matrix
+# import cf_matrix
 import os
 import json
 import logging
@@ -805,14 +805,12 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
                     else:
                         temp_1.append(label_map[label_ids[i][j]])
                         lab_pred=logits[i][j]
-                        if lab_pred==len(label_map) or lab_pred==len(label_map)-1:
-                            lab_pred=1
                         temp_2.append(label_map[lab_pred])
 
         report = classification_report(y_true, y_pred, digits=4)
         flat_y_true=[i for j in y_true for i in j]
         flat_y_pred=[i for j in y_pred for i in j]
-        cf_matrix.generate_plotly_cf_mat(flat_y_true, flat_y_pred, label_map, "confusion_matrix.html",  "./visualizations/")
+        # cf_matrix.generate_plotly_cf_mat(flat_y_true, flat_y_pred, label_map, "confusion_matrix.html",  "./visualizations/")
         logger.info("\n%s", report)
         output_eval_file = os.path.join(output_dir, "eval_results.txt")
         with open(output_eval_file, "w") as writer:
