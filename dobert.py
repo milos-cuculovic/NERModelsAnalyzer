@@ -200,7 +200,7 @@ def trainBERTModel(jsonfile, output_dir, nIter, use_cuda):
     else:
         device = "cpu"
 
-    trainBert(output_dir, train_batch_size, True, int(nIter), use_cuda, False, 1, learning_rate,
+    trainBert(output_dir, train_batch_size, True, int(nIter), use_cuda, True, 1, learning_rate,
               weight_decay, warmup_proportion)
     
 def trainBERTGrid(jsonfile, output_dir, nIter, use_cuda):
