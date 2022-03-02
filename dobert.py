@@ -1,14 +1,23 @@
-# import cf_matrix
+"""
+Created on Fri Jun 25 17:49:48 2021
+@author: chams
+"""
+import shutil
 import os
+from torch import nn
 import json
 import logging
 import random
 import numpy as np
 import matplotlib.pyplot as plt
-from pytorch_transformers import (AdamW, BertTokenizer, WarmupLinearSchedule)
+from pytorch_transformers import (AdamW,
+                                  BertForTokenClassification, BertTokenizer,
+                                  WarmupLinearSchedule)
+from transformers import pipeline, AutoModelForTokenClassification
 from transformers import BertConfig
 from transformers import pipeline, AutoModelForTokenClassification
 from transformers import BertTokenizer, BertForTokenClassification
+
 import torch
 from tqdm import tqdm, trange
 from seqeval.metrics import classification_report
@@ -17,9 +26,11 @@ from torch.utils.data import DataLoader, TensorDataset, SequentialSampler, Rando
 from torch.utils.data.distributed import DistributedSampler
 from nltk import word_tokenize
 import torch.distributed as dist
+import torch.multiprocessing as mp
 import torch.nn as nn
+import torch.optim as optim
+from torch.nn.parallel import DistributedDataParallel as DDP
 from bertconf import removEsc, sentenceMean, json_conll, trigConll, crossval
-import shutil
 
 trigger = ['why', 'on the contrary','what','however','either','while','rather','instead of', 'when',
          'in order to','therefore','not only', 'afterwards','once again','or','in order to','in particular',
@@ -119,10 +130,10 @@ class Ner:
         """ preprocess """
         tokens, valid_positions = self.tokenize(text)
         ## insert "[CLS]"
-        tokens.insert(0,"[CLS]")
+       # tokens.insert(0,"[CLS]")
         valid_positions.insert(0,1)
         ## insert "[SEP]"
-        tokens.append("[SEP]")
+        #tokens.append("[SEP]")
         valid_positions.append(1)
         segment_ids = []
         for i in range(len(tokens)):
@@ -172,27 +183,26 @@ device = 'cpu'
 
 def trainBERTModel(jsonfile, output_dir, nIter, use_cuda):
 
-    learning_rate       = 0.0001
-    weight_decay        = 0.1
+    learning_rate       = 2e-05
+    weight_decay        = 0.001
     warmup_proportion   = 0.1
-    train_batch_size    = 16
+    train_batch_size    = 26
 
-    # # INITIAL
+    # # # INITIAL
     # removEsc(os.path.abspath(jsonfile))
 
     # # STEP ONE cross validation
-    # crossval(os.path.abspath(jsonfile), os.path.abspath(""))
+    crossval(os.path.abspath(jsonfile), os.path.abspath(""))
 
-    # # # STEP TWO remove sentence without action and location
-    # # sentenceMean(os.path.abspath("train1.json"))
+    # # STEP TWO remove sentence without action and location
+    #sentenceMean(os.path.abspath("train1.json"))
 
     # # STEP THREE convert json to conll
-    # json_conll(os.path.abspath("train1.json"), os.path.abspath(""), 'train.txt')
-    # json_conll(os.path.abspath("valid1.json"), os.path.abspath(""), 'valid.txt')
-
+    json_conll(os.path.abspath("train1.json"), os.path.abspath(""), 'train_final_1.txt')
+    json_conll(os.path.abspath("valid1.json"), os.path.abspath(""), 'valid_final_1.txt')
     # # STEP FOUR REPLACE TRIGGER
-    # trigConll(os.path.abspath("train.txt"), trigger)
-    # trigConll(os.path.abspath("valid.txt"), trigger)
+    trigConll(os.path.abspath("train_final_1.txt"), trigger)
+    trigConll(os.path.abspath("valid_final_1.txt"), trigger)
 
     global device
     if use_cuda == True:
@@ -200,11 +210,11 @@ def trainBERTModel(jsonfile, output_dir, nIter, use_cuda):
     else:
         device = "cpu"
 
-    trainBert(output_dir, train_batch_size, True, int(nIter), use_cuda, False, 1, learning_rate,
+    trainBert(output_dir, train_batch_size, True, int(nIter), use_cuda, True, 1, learning_rate,
               weight_decay, warmup_proportion)
     
 def trainBERTGrid(jsonfile, output_dir, nIter, use_cuda):
-    #INITIAL
+    # # INITIAL
     # removEsc(os.path.abspath(jsonfile))
 
     # # STEP ONE cross validation
@@ -368,9 +378,9 @@ import itertools
 
 def loopBerthyperparam(output_dir,num_train_epochs,use_cuda):
     weightdecay         = [0.1, 0.01, 0.001, 0.0001]
-    learningrate        = [1e-3, 5e-4, 1e-4, 5e-5, 1e-5]
+    learningrate        = [2e-5, 2.2e-5, 2.4e-5, 2.6e-5, 2.8e-5, 3e-5]
     warmupproportion    = [0.1]
-    trainbatchsize      = [256, 128, 64, 32, 16, 8, 4]
+    trainbatchsize      = [32, 30, 28, 26, 24, 22, 20, 18, 16]
     hyperparam          = [weightdecay, learningrate, warmupproportion, trainbatchsize]
     i                   = 0
 
@@ -392,7 +402,7 @@ def compareauto(sizecombine,filename):
     recall=[0,0]
     f1score=[0,0]
     for i in range(1,sizecombine+1):
-       with open(filename+str(i)+"/eval_results.txt") as file:
+       with open(filename+str(1)+"/eval_results.txt") as file:
             for line in file:
                 line[0].split()
                 for line in file:
@@ -413,9 +423,6 @@ def compareauto(sizecombine,filename):
     print("precision n "+str(precision[0]))
     print("recall n "+str(recall[0]))
     print("f1score n " +str(f1score[0]))
-
-
-
                   
 def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer):
     """Loads a data file into a list of `InputBatch`s."""
@@ -453,7 +460,7 @@ def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer
         segment_ids.append(0)
         valid.insert(0, 1)
         label_mask.insert(0, 1)
-        label_ids.append(label_map["[CLS]"])
+  #     label_ids.append(label_map["[CLS]"])
         for i, token in enumerate(tokens):
             ntokens.append(token)
             segment_ids.append(0)
@@ -463,7 +470,7 @@ def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer
         segment_ids.append(0)
         valid.append(1)
         label_mask.append(1)
-        label_ids.append(label_map["[SEP]"])
+      # label_ids.append(label_map["[SEP]"])
         input_ids = tokenizer.convert_tokens_to_ids(ntokens)
         input_mask = [1] * len(input_ids)
         label_mask = [1] * len(label_ids)
@@ -603,8 +610,6 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
         raise ValueError("Output directory ({}) already exists and is not empty.".format(output_dir))
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    files = os.path.abspath("valid.json")
-    shutil.copy(files, os.path.abspath(output_dir))
 
     task_name = "ner".lower()
 
@@ -740,8 +745,11 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
         plt.title('Train Loss')
 
         plt.show()
-
+        
+        shutil.copyfile(os.path.abspath("train.txt"),output_dir+"train.txt")  
+        shutil.copyfile(os.path.abspath("valid.txt"),output_dir+"valid.txt")
         plt.savefig(output_dir + '/losses.png')
+        
     else:
         # Load a trained model and vocabulary that you have fine-tuned
         model = Nertrain.from_pretrained(output_dir)
@@ -753,6 +761,7 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
 
     if do_eval and (local_rank == -1 or torch.distributed.get_rank() == 0):
 
+        eval_examples = processor.get_dev_examples("")
         eval_examples = processor.get_dev_examples("")
         eval_features = convert_examples_to_features(eval_examples, label_list, max_seq_length, tokenizer)
         logger.info("***** Running evaluation *****")
@@ -781,17 +790,15 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
             valid_ids = valid_ids.to(device)
             label_ids = label_ids.to(device)
             l_mask = l_mask.to(device)
-            # print(label_map)
+
             with torch.no_grad():
                 logits = model(input_ids, segment_ids, input_mask, valid_ids=valid_ids, attention_mask_label=l_mask)
-            # print(label_ids)
+
             logits = torch.argmax(F.log_softmax(logits, dim=2), dim=2)
             logits = logits.detach().cpu().numpy()
-            # print(logits[1])
-           
             label_ids = label_ids.to('cpu').numpy()
             input_mask = input_mask.to('cpu').numpy()
-            # print(label_map)
+
             for i, label in enumerate(label_ids):
                 temp_1 = []
                 temp_2 = []
@@ -805,12 +812,13 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
                     else:
                         temp_1.append(label_map[label_ids[i][j]])
                         lab_pred=logits[i][j]
+                        if lab_pred==len(label_map) or lab_pred==len(label_map)-1:
+                            lab_pred=1
                         temp_2.append(label_map[lab_pred])
 
+                        
+
         report = classification_report(y_true, y_pred, digits=4)
-        flat_y_true=[i for j in y_true for i in j]
-        flat_y_pred=[i for j in y_pred for i in j]
-        # cf_matrix.generate_plotly_cf_mat(flat_y_true, flat_y_pred, label_map, "confusion_matrix.html",  "./visualizations/")
         logger.info("\n%s", report)
         output_eval_file = os.path.join(output_dir, "eval_results.txt")
         with open(output_eval_file, "w") as writer:
@@ -820,10 +828,5 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
             logger.info("warmup:"+str(warmup_proportion))
             logger.info("train batch size:"+str(train_batch_size))
             logger.info("\n%s", report)
-            
-            writer.write("***** Eval results *****")
-            writer.write("weight_decay:"+str(weight_decay))
-            writer.write("learning_rate:"+str(learning_rate))
-            writer.write("warmup:"+str(warmup_proportion))
-            writer.write("train batch size:"+str(train_batch_size))
             writer.write(report)
+
