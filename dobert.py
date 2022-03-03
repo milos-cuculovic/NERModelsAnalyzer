@@ -762,7 +762,6 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
     if do_eval and (local_rank == -1 or torch.distributed.get_rank() == 0):
 
         eval_examples = processor.get_dev_examples("")
-        eval_examples = processor.get_dev_examples("")
         eval_features = convert_examples_to_features(eval_examples, label_list, max_seq_length, tokenizer)
         logger.info("***** Running evaluation *****")
         logger.info("  Num examples = %d", len(eval_examples))
@@ -790,15 +789,17 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
             valid_ids = valid_ids.to(device)
             label_ids = label_ids.to(device)
             l_mask = l_mask.to(device)
-
+            # print(label_map)
             with torch.no_grad():
                 logits = model(input_ids, segment_ids, input_mask, valid_ids=valid_ids, attention_mask_label=l_mask)
-
+            # print(label_ids)
             logits = torch.argmax(F.log_softmax(logits, dim=2), dim=2)
             logits = logits.detach().cpu().numpy()
+            # print(logits[1])
+
             label_ids = label_ids.to('cpu').numpy()
             input_mask = input_mask.to('cpu').numpy()
-
+            # print(label_map)
             for i, label in enumerate(label_ids):
                 temp_1 = []
                 temp_2 = []
@@ -811,22 +812,26 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
                         break
                     else:
                         temp_1.append(label_map[label_ids[i][j]])
-                        lab_pred=logits[i][j]
-                        if lab_pred==len(label_map) or lab_pred==len(label_map)-1:
-                            lab_pred=1
+                        lab_pred = logits[i][j]
                         temp_2.append(label_map[lab_pred])
 
-                        
-
         report = classification_report(y_true, y_pred, digits=4)
+        flat_y_true = [i for j in y_true for i in j]
+        flat_y_pred = [i for j in y_pred for i in j]
+        # cf_matrix.generate_plotly_cf_mat(flat_y_true, flat_y_pred, label_map, "confusion_matrix.html",  "./visualizations/")
         logger.info("\n%s", report)
         output_eval_file = os.path.join(output_dir, "eval_results.txt")
         with open(output_eval_file, "w") as writer:
             logger.info("***** Eval results *****")
-            logger.info("weight_decay:"+str(weight_decay))
-            logger.info("learning_rate:"+str(learning_rate))
-            logger.info("warmup:"+str(warmup_proportion))
-            logger.info("train batch size:"+str(train_batch_size))
+            logger.info("weight_decay:" + str(weight_decay))
+            logger.info("learning_rate:" + str(learning_rate))
+            logger.info("warmup:" + str(warmup_proportion))
+            logger.info("train batch size:" + str(train_batch_size))
             logger.info("\n%s", report)
-            writer.write(report)
 
+            writer.write("***** Eval results *****")
+            writer.write("weight_decay:" + str(weight_decay))
+            writer.write("learning_rate:" + str(learning_rate))
+            writer.write("warmup:" + str(warmup_proportion))
+            writer.write("train batch size:" + str(train_batch_size))
+            writer.write(report)
