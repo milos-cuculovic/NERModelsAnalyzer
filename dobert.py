@@ -691,6 +691,8 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
 
         model.train()
         train_losses = []
+        best_losses = 1
+
         for _ in trange(int(num_train_epochs), desc="Epoch"):
             tr_loss = 0
             nb_tr_examples, nb_tr_steps = 0, 0
@@ -720,6 +722,11 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
                     global_step += 1
 
             tr_losses = tr_loss / len(train_dataloader)
+
+            if tr_losses < best_losses:
+                best_losses = tr_losses
+                model_to_save = model.module if hasattr(model, 'module') else model
+
             if tr_losses < 0.05:
                 break
             train_losses.append(tr_losses)
@@ -729,7 +736,7 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
         # Save a trained model and the associated configuration
         print(train_losses)
         print(len(train_losses))
-        model_to_save = model.module if hasattr(model, 'module') else model  # Only save the model it-self
+
         model_to_save.save_pretrained(output_dir)
         tokenizer.save_pretrained(output_dir)
         label_map = {i: label for i, label in enumerate(label_list, 1)}
@@ -743,8 +750,6 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
         plt.ylabel('loss')
         plt.legend(['Train'])
         plt.title('Train Loss')
-
-        plt.show()
         
         shutil.copyfile(os.path.abspath("train.txt"),output_dir+"train.txt")  
         shutil.copyfile(os.path.abspath("valid.txt"),output_dir+"valid.txt")
@@ -811,7 +816,13 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
                         y_pred.append(temp_2)
                         break
                     else:
-                        temp_1.append(label_map[label_ids[i][j]])
+                        try:
+                            temp_1.append(label_map[label_ids[i][j] + 1])
+                        except:
+                            print(i)
+                            print(j)
+                            print(label_ids[i][j])
+
                         lab_pred = logits[i][j]
                         temp_2.append(label_map[lab_pred])
 
