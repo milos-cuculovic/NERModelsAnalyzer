@@ -130,10 +130,10 @@ class Ner:
         """ preprocess """
         tokens, valid_positions = self.tokenize(text)
         ## insert "[CLS]"
-       # tokens.insert(0,"[CLS]")
+        tokens.insert(0,"[CLS]")
         valid_positions.insert(0,1)
         ## insert "[SEP]"
-        #tokens.append("[SEP]")
+        tokens.append("[SEP]")
         valid_positions.append(1)
         segment_ids = []
         for i in range(len(tokens)):
@@ -423,6 +423,8 @@ def compareauto(sizecombine,filename):
     print("precision n "+str(precision[0]))
     print("recall n "+str(recall[0]))
     print("f1score n " +str(f1score[0]))
+
+
                   
 def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer):
     """Loads a data file into a list of `InputBatch`s."""
@@ -460,7 +462,7 @@ def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer
         segment_ids.append(0)
         valid.insert(0, 1)
         label_mask.insert(0, 1)
-  #     label_ids.append(label_map["[CLS]"])
+        label_ids.append(label_map["[CLS]"])
         for i, token in enumerate(tokens):
             ntokens.append(token)
             segment_ids.append(0)
@@ -470,7 +472,7 @@ def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer
         segment_ids.append(0)
         valid.append(1)
         label_mask.append(1)
-      # label_ids.append(label_map["[SEP]"])
+        label_ids.append(label_map["[SEP]"])
         input_ids = tokenizer.convert_tokens_to_ids(ntokens)
         input_mask = [1] * len(input_ids)
         label_mask = [1] * len(label_ids)
@@ -801,23 +803,24 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
             logits = torch.argmax(F.log_softmax(logits, dim=2), dim=2)
             logits = logits.detach().cpu().numpy()
             # print(logits[1])
-
             label_ids = label_ids.to('cpu').numpy()
             input_mask = input_mask.to('cpu').numpy()
             # print(label_map)
             for i, label in enumerate(label_ids):
                 temp_1 = []
                 temp_2 = []
+                
                 for j, m in enumerate(label):
                     if j == 0:
                         continue
+                    
                     elif label_ids[i][j] == len(label_map):
                         y_true.append(temp_1)
                         y_pred.append(temp_2)
                         break
                     else:
                         try:
-                            temp_1.append(label_map[label_ids[i][j] + 1])
+                            temp_1.append(label_map[label_ids[i][j]+1])
                         except:
                             print(i)
                             print(j)
@@ -825,7 +828,7 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
 
                         lab_pred = logits[i][j]
                         temp_2.append(label_map[lab_pred])
-
+        
         report = classification_report(y_true, y_pred, digits=4)
         flat_y_true = [i for j in y_true for i in j]
         flat_y_pred = [i for j in y_pred for i in j]
