@@ -683,8 +683,12 @@ def trainxlnet(output_dir, train_batch_size, do_train, num_train_epochs, use_cud
             for step, batch in enumerate(tqdm(train_dataloader, desc="Iteration")):
                 batch = tuple(t.to(device) for t in batch)
                 input_ids, input_mask, label_ids,  l_mask = batch
-                output = model(input_ids=input_ids, attention_mask_label= l_mask)
-                loss=output[0]
+                print("input mask: " + str(input_mask.shape))
+                output = model(input_ids=input_ids,token_type_ids=None, attention_mask=input_mask, attention_mask_label= l_mask, labels=label_ids)
+                loss=output["loss"]
+                logits=output["logits"]
+                print("loss"+str(loss.shape))
+                print("loss"+str(loss.item()))
                 tr_loss += loss.item()
                 nb_tr_examples += input_ids.size(0)
                 nb_tr_steps += 1
