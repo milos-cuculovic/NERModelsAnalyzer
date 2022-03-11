@@ -346,7 +346,6 @@ def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer
         ntokens = []
         segment_ids = []
         label_ids = []
-        ntokens.append("[CLS]")
         segment_ids.append(0)
         valid.insert(0, 1)
         label_mask.insert(0, 1)
@@ -704,10 +703,9 @@ def trainRoberta(output_dir, train_batch_size, do_train, num_train_epochs, use_c
                         y_pred.append(temp_2)
                         break
                     else:
-                        # print(label_map[label_ids[i][j]])
                         temp_1.append(label_map[label_ids[i][j]])
                         temp_2.append(label_map[logits[i][j]])
-                        
+        print(y_true)
         report = classification_report(y_true, y_pred, digits=4)
         logger.info("\n%s", report)
         output_eval_file = os.path.join(output_dir, "eval_results.txt")
@@ -718,8 +716,9 @@ def trainRoberta(output_dir, train_batch_size, do_train, num_train_epochs, use_c
             logger.info("warmup:"+str(warmup_proportion))
             logger.info("train batch size:"+str(train_batch_size))
             logger.info("\n%s", report)
-            writer.write(report)
+            print(report)
             writer.write("\n weight_decay:"+str(weight_decay))
             writer.write("\n learning_rate:"+str(learning_rate))
             writer.write("\n warmup:"+str(warmup_proportion))
-            writer.write("\n train batch size:"+str(train_batch_size))            
+            writer.write("\n train batch size:"+str(train_batch_size))    
+            writer.write(report)        

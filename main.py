@@ -7,18 +7,18 @@ from dobilstm import trainBiLSTMModel
 from datetime import datetime
 from dobert import trainBERTModel, evaluation, pip_aggregation, Ner, prediction,trainBERTGrid
 from doroberta import trainROBERTAModel, evaluationRoberta, pip_aggregationRoberta, predictionRoberta,trainROBERTAGrid
-
+from doxlnet import trainxlnetModel
 
 def train_model(model, output_dir, useCuda, spacy_model_type = "1", grid_type = "1"):
     LABEL = ['LOCATION', 'CONTENT', 'TRIGGER', 'MODAL', 'ACTION']
 
     ROOT_DIR = os.path.dirname(os.path.abspath('data.json'))
-    path_train_data_bert = os.path.join(ROOT_DIR, 'data-use1.json')
+    path_train_data_bert = os.path.join(ROOT_DIR, 'final1.json')
     path_train_data = os.path.join(ROOT_DIR, 'data_train_full.json')
     path_valid_data = os.path.join(ROOT_DIR, 'data_valid_full.json')
 
     dropout = 1e-5
-    nIter   = 10
+    nIter   = 1
     
 
     now = datetime.now()
@@ -42,6 +42,8 @@ def train_model(model, output_dir, useCuda, spacy_model_type = "1", grid_type = 
     elif model==str(5):
         trainROBERTAModel(path_train_data_bert, output_dir, nIter, useCuda)
         exit()
+    elif model == str(6):
+        trainxlnetModel(path_train_data_bert, output_dir, nIter, useCuda)
     else:
         exit("Wrong model selection")
 
@@ -103,13 +105,10 @@ if __name__ == '__main__':
     spacy_model_type = "1"
     action_type = input("Action type: (1. Train; 2. Dataset Test; 3. Manual Test; 4.Grid search): ")
     if action_type == str(1):
-        model = input("Model (1. spaCy; 2. Bi-LSTM; 3. BERT; 4. BERT-pip_aggregation, 5.Roberta): ")
+        model = input("Model (1. spaCy; 2. Bi-LSTM; 3. BERT; 4. BERT-pip_aggregation, 5.Roberta, 6: xlnet): ")
         modelFile = input("Enter the Model name to save: ")
         if model == "4":
             pip_aggregation(modelFile, modelFile + "_pip_aggregation")
-            exit()
-        if model=="6":
-            pip_aggregationRoberta(modelFile, modelFile + "_pip_aggregation")
             exit()
         if model == "3" or model == "4" :
             useCuda = input("Use Cuda? (y or n, default n): ")
@@ -117,7 +116,7 @@ if __name__ == '__main__':
                 useCuda = True
             else:
                 useCuda = False
-        if model == "5":
+        if model == "5" or model=="6":
             useCuda = input("Use Cuda? (y or n, default n): ")
             if useCuda == "y":
                 useCuda = True

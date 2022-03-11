@@ -64,7 +64,7 @@ def twoPoint(jsonfile,jsonfile1):
    
     with open(jsonfile1, 'w') as fp:
         json.dump(sample, fp)
-# twoPoint("./data-use1.json","./data-use2.json")
+# twoPoint("./final.json","./final1.json")
     
 
 def firstfiltre(jsonpath,jsonpath2,js3):
@@ -86,9 +86,9 @@ def firstfiltre(jsonpath,jsonpath2,js3):
 # firstfiltre("/home/chams/Documents/mdpi/milosphd/NER_models_reviewer_comments/data-use2.json","/home/chams/Documents/mdpi/milosphd/NER_models_reviewer_comments/data-use3.json","/home/chams/Documents/mdpi/milosphd/NER_models_reviewer_comments/data-use3.json")
 def crossval(jsonpath,path):
    data = [json.loads(line) for line in open(jsonpath, 'r')]
-   print(data)
+   # print(data)
    data=data[0]
-   train, test = train_test_split(data, test_size=0.2)
+   train, test = train_test_split(data, test_size=0.2,train_size=0.8)
    # print(test[0]['text'])
    kf = KFold(n_splits=4, shuffle=True)
    # print(test[0])
@@ -111,6 +111,46 @@ def crossval(jsonpath,path):
                 open_train.write('\n')
             open_train.close()
 
+
+def validdtraincomun(file1,file2):
+    with open(file1)as f1:
+        lines=f1.readlines()
+    f1.close()
+    sentencelist=[]
+    sentence=""
+    for line in lines:
+            if line=="\n" :
+                sentencelist.append(sentence)
+                sentence=""
+                print(line)
+            else:
+                sentence+=line
+                   
+    with open(file2)as f:
+        lines=f.readlines()
+    f.close()
+    sentencelist2=[]
+    sentence=""
+    for line in lines:
+            if line=="\n" :
+                sentencelist2.append(sentence)
+                sentence=""
+            else:
+                sentence+=line
+    sim=0
+    for sen in sentencelist:
+        for sen1 in sentencelist2:
+            if sen==sen1:
+                sim+=1
+                print(sen)
+    print(sim)
+    print(len(sentencelist))
+    print(len(sentencelist2))
+    
+#validdtraincomun("/home/chams/Downloads/train_1.txt", "/home/chams/Downloads/valid_1.txt")
+            
+                
+                
 def convertModel():
     PATH = "/home/chams/Documents/mdpi/pytorch_model.bin"
     torch.save( 'pytorch_model.bin', PATH)
@@ -531,4 +571,3 @@ def shuffleFile(file1,file2,file3):
              linesrest=shuffleFile(file3, file2,file3)
         f.close()
         return linesrest
-

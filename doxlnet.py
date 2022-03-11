@@ -132,26 +132,20 @@ class Ner:
         ## insert "[SEP]"
         tokens.append("[SEP]")
         valid_positions.append(1)
-        segment_ids = []
-        for i in range(len(tokens)):
-            segment_ids.append(0)
         input_ids = self.tokenizer.convert_tokens_to_ids(tokens)
         input_mask = [1] * len(input_ids)
         while len(input_ids) < self.max_seq_length:
             input_ids.append(0)
             input_mask.append(0)
-            segment_ids.append(0)
             valid_positions.append(0)
-        return input_ids,input_mask,segment_ids,valid_positions
+        return input_ids,input_mask,valid_positions
 
     def predict(self, text: str):
-        input_ids,input_mask,segment_ids,valid_ids = self.preprocess(text)
+        input_ids,input_mask = self.preprocess(text)
         input_ids = torch.tensor([input_ids],dtype=torch.long,device=self.device)
         input_mask = torch.tensor([input_mask],dtype=torch.long,device=self.device)
-        segment_ids = torch.tensor([segment_ids],dtype=torch.long,device=self.device)
-        valid_ids = torch.tensor([valid_ids],dtype=torch.long,device=self.device)
         with torch.no_grad():
-            logits = self.model(input_ids, segment_ids, input_mask,valid_ids)
+            logits = self.model(input_ids, input_mask)
         logits = F.softmax(logits,dim=2)
         logits_label = torch.argmax(logits,dim=2)
         logits_label = logits_label.detach().cpu().numpy().tolist()[0]
@@ -160,13 +154,7 @@ class Ner:
 
         logits = []
         pos = 0
-        for index,mask in enumerate(valid_ids[0]):
-            if index == 0:
-                continue
-            if mask == 1:
-                logits.append((logits_label[index-pos],logits_confidence[index-pos]))
-            else:
-                pos += 1
+        
         logits.pop()
 
         labels = [(self.label_map[label],confidence) for label,confidence in logits]
@@ -674,11 +662,9 @@ def trainxlnet(output_dir, train_batch_size, do_train, num_train_epochs, use_cud
         logger.info("  Num steps = %d", num_train_optimization_steps)
         all_input_ids = torch.tensor([f.input_ids for f in train_features], dtype=torch.long)
         all_input_mask = torch.tensor([f.input_mask for f in train_features], dtype=torch.long)
-        all_segment_ids = torch.tensor([f.segment_ids for f in train_features], dtype=torch.long)
         all_label_ids = torch.tensor([f.label_id for f in train_features], dtype=torch.long)
-        all_valid_ids = torch.tensor([f.valid_ids for f in train_features], dtype=torch.long)
         all_lmask_ids = torch.tensor([f.label_mask for f in train_features], dtype=torch.long)
-        train_data = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids, all_valid_ids,
+        train_data = TensorDataset(all_input_ids, all_input_mask, all_label_ids,
                                    all_lmask_ids)
         if local_rank == -1:
             train_sampler = RandomSampler(train_data)
@@ -696,12 +682,8 @@ def trainxlnet(output_dir, train_batch_size, do_train, num_train_epochs, use_cud
             nb_tr_examples, nb_tr_steps = 0, 0
             for step, batch in enumerate(tqdm(train_dataloader, desc="Iteration")):
                 batch = tuple(t.to(device) for t in batch)
-                input_ids, input_mask, segment_ids, label_ids, valid_ids, l_mask = batch
+                input_ids, input_mask, label_ids,  l_mask = batch
                 output = model(input_ids=input_ids, attention_mask_label= l_mask)
-                print("output")
-                print(output)
-                print()
-                print(output[0].last_hidden_state.shape)
                 loss=output[0]
                 tr_loss += loss.item()
                 nb_tr_examples += input_ids.size(0)
@@ -716,12 +698,8 @@ def trainxlnet(output_dir, train_batch_size, do_train, num_train_epochs, use_cud
             if tr_losses < 0.05:
                 break
             train_losses.append(tr_losses)
-            print(train_losses)
-            print(len(train_losses))
 
         # Save a trained model and the associated configuration
-        print(train_losses)
-        print(len(train_losses))
         model_to_save = model.module if hasattr(model, 'module') else model  # Only save the model it-self
         model_to_save.save_pretrained(output_dir)
         tokenizer.save_pretrained(output_dir)
