@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from pytorch_transformers import (AdamW,
                                   WarmupLinearSchedule)
-from transformers import XLNetTokenizer, XLNetModel,  XLNetConfig,XLNetForTokenClassification   
+from transformers import XLNetTokenizer, XLNetForTokenClassification,  XLNetConfig   
 
 from transformers import pipeline, AutoModelForTokenClassification
 from transformers import pipeline, AutoModelForTokenClassification
@@ -42,53 +42,53 @@ trigger = ['why', 'on the contrary','what','however','either','while','rather','
 
 
 
-class Nertrain(XLNetForTokenClassification):
+# class Nertrain(XLNetForTokenClassification):
 
-    def forward(self, input_ids, token_type_ids=None, attention_mask=None, labels=None, valid_ids=None,
-                attention_mask_label=None):
-        sequence_output = self.transformer(input_ids, token_type_ids, attention_mask, head_mask=None)[0]
-        batch_size, max_len, feat_dim = sequence_output.shape
-        valid_output = torch.zeros(batch_size, max_len, feat_dim, dtype=torch.float32, device=device)
-        for i in range(batch_size):
-            jj = -1
-            for j in range(max_len):
-                if valid_ids[i][j].item() == 1:
-                    jj += 1
-                    valid_output[i][jj] = sequence_output[i][j]
-        sequence_output = self.dropout(valid_output)
-        logits = self.classifier(sequence_output)
+#     def forward(self, input_ids, token_type_ids=None, attention_mask=None, labels=None, valid_ids=None,
+#                 attention_mask_label=None):
+#         sequence_output = self.transformer(input_ids, token_type_ids, attention_mask, head_mask=None)[0]
+#         batch_size, max_len, feat_dim = sequence_output.shape
+#         valid_output = torch.zeros(batch_size, max_len, feat_dim, dtype=torch.float32, device=device)
+#         for i in range(batch_size):
+#             jj = -1
+#             for j in range(max_len):
+#                 if valid_ids[i][j].item() == 1:
+#                     jj += 1
+#                     valid_output[i][jj] = sequence_output[i][j]
+#         sequence_output = self.dropout(valid_output)
+#         logits = self.classifier(sequence_output)
 
-        if labels is not None:
-            loss_fct = nn.CrossEntropyLoss(ignore_index=0)
-            # Only keep active parts of the loss
-            # attention_mask_label = None
-            if attention_mask_label is not None:
-                active_loss = attention_mask_label.view(-1) == 1
-                active_logits = logits.view(-1, self.num_labels)[active_loss]
-                active_labels = labels.view(-1)[active_loss]
-                loss = loss_fct(active_logits, active_labels)
-            else:
-                loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
-            return loss
-        else:
-            return logits
+#         if labels is not None:
+#             loss_fct = nn.CrossEntropyLoss(ignore_index=0)
+#             # Only keep active parts of the loss
+#             # attention_mask_label = None
+#             if attention_mask_label is not None:
+#                 active_loss = attention_mask_label.view(-1) == 1
+#                 active_logits = logits.view(-1, self.num_labels)[active_loss]
+#                 active_labels = labels.view(-1)[active_loss]
+#                 loss = loss_fct(active_logits, active_labels)
+#             else:
+#                 loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
+#             return loss
+#         else:
+#             return logits
 
 
-class XLNetNer(XLNetForTokenClassification):
+# class XLNetNer(XLNetForTokenClassification):
 
-    def forward(self, input_ids, token_type_ids=None, attention_mask=None, valid_ids=None):
-        sequence_output = self.xlnet(input_ids, token_type_ids, attention_mask, head_mask=None)[0]
-        batch_size,max_len,feat_dim = sequence_output.shape
-        valid_output = torch.zeros(batch_size,max_len,feat_dim,dtype=torch.float32,device='cuda' if torch.cuda.is_available() else 'cpu')
-        for i in range(batch_size):
-            jj = -1
-            for j in range(max_len):
-                    if valid_ids[i][j].item() == 1:
-                        jj += 1
-                        valid_output[i][jj] = sequence_output[i][j]
-        sequence_output = self.dropout(valid_output)
-        logits = self.classifier(sequence_output)
-        return logits
+#     def forward(self, input_ids, token_type_ids=None, attention_mask=None, valid_ids=None):
+#         sequence_output = self.xlnet(input_ids, token_type_ids, attention_mask, head_mask=None)[0]
+#         batch_size,max_len,feat_dim = sequence_output.shape
+#         valid_output = torch.zeros(batch_size,max_len,feat_dim,dtype=torch.float32,device='cuda' if torch.cuda.is_available() else 'cpu')
+#         for i in range(batch_size):
+#             jj = -1
+#             for j in range(max_len):
+#                     if valid_ids[i][j].item() == 1:
+#                         jj += 1
+#                         valid_output[i][jj] = sequence_output[i][j]
+#         sequence_output = self.dropout(valid_output)
+#         logits = self.classifier(sequence_output)
+#         return logits
 
 class Ner:
 
@@ -104,7 +104,7 @@ class Ner:
     def load_model(self, model_dir: str, model_config: str = "model_config.json"):
         model_config = os.path.join(model_dir,model_config)
         model_config = json.load(open(model_config))
-        model = XLNetNer.from_pretrained(model_dir)
+        model = XLNetForTokenClassification.from_pretrained(model_dir)
         tokenizer = XLNetTokenizer.from_pretrained(model_dir, do_lower_case=model_config["do_lower"],return_tensors="pt")
         return model, tokenizer, model_config
 
@@ -185,22 +185,22 @@ def trainxlnetModel(jsonfile, output_dir, nIter, use_cuda):
     warmup_proportion   = 0.1
     train_batch_size    = 26
 
-    # # INITIAL
-    # removEsc(os.path.abspath(jsonfile))
+    # INITIAL
+    removEsc(os.path.abspath(jsonfile))
 
-    # # STEP ONE cross validation
-    # crossval(os.path.abspath(jsonfile), os.path.abspath(""))
+    # STEP ONE cross validation
+    crossval(os.path.abspath(jsonfile), os.path.abspath(""))
 
-    # # STEP TWO remove sentence without action and location
-    # sentenceMean(os.path.abspath("train1.json"))
+    # STEP TWO remove sentence without action and location
+    sentenceMean(os.path.abspath("train1.json"))
 
-    # # STEP THREE convert json to conll
-    # json_conll(os.path.abspath("train1.json"), os.path.abspath(""), 'train.txt')
-    # json_conll(os.path.abspath("valid1.json"), os.path.abspath(""), 'valid.txt')
+    # STEP THREE convert json to conll
+    json_conll(os.path.abspath("train1.json"), os.path.abspath(""), 'train.txt')
+    json_conll(os.path.abspath("valid1.json"), os.path.abspath(""), 'valid.txt')
 
-    # # STEP FOUR REPLACE TRIGGER
-    # trigConll(os.path.abspath("train.txt"), trigger)
-    # trigConll(os.path.abspath("valid.txt"), trigger)
+    # STEP FOUR REPLACE TRIGGER
+    trigConll(os.path.abspath("train.txt"), trigger)
+    trigConll(os.path.abspath("valid.txt"), trigger)
 
     global device
     if use_cuda == True:
@@ -608,8 +608,6 @@ def trainxlnet(output_dir, train_batch_size, do_train, num_train_epochs, use_cud
         raise ValueError("Output directory ({}) already exists and is not empty.".format(output_dir))
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    files = os.path.abspath("valid.json")
-    shutil.copy(files, os.path.abspath(output_dir))
 
     task_name = "ner".lower()
 
@@ -633,7 +631,7 @@ def trainxlnet(output_dir, train_batch_size, do_train, num_train_epochs, use_cud
 
     # Prepare model
     config = XLNetConfig.from_pretrained(xlnet_model, num_labels=num_labels, finetuning_task=task_name)
-    model = Nertrain.from_pretrained(xlnet_model, from_tf=False, config=config)
+    model = XLNetForTokenClassification.from_pretrained(xlnet_model, from_tf=False, config=config)
 
     if local_rank == 0:
         torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab
@@ -699,19 +697,12 @@ def trainxlnet(output_dir, train_batch_size, do_train, num_train_epochs, use_cud
             for step, batch in enumerate(tqdm(train_dataloader, desc="Iteration")):
                 batch = tuple(t.to(device) for t in batch)
                 input_ids, input_mask, segment_ids, label_ids, valid_ids, l_mask = batch
-                loss = model(input_ids, segment_ids, input_mask, label_ids, valid_ids, l_mask)
-                if n_gpu > 1:
-                    loss = loss.mean()  # mean() to average on multi-gpu.
-                if gradient_accumulation_steps > 1:
-                    loss = loss / gradient_accumulation_steps
-
-                # if fp16:
-                #     with amp.scale_loss(loss, optimizer) as scaled_loss:
-                #         scaled_loss.backward()
-                #     torch.nn.utils.clip_grad_norm_(amp.master_params(optimizer), max_grad_norm)
-                else:
-                    loss.backward()
-                    torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
+                output = model(input_ids=input_ids, attention_mask_label= l_mask)
+                print("output")
+                print(output)
+                print()
+                print(output[0].last_hidden_state.shape)
+                loss=output[0]
                 tr_loss += loss.item()
                 nb_tr_examples += input_ids.size(0)
                 nb_tr_steps += 1
@@ -751,7 +742,8 @@ def trainxlnet(output_dir, train_batch_size, do_train, num_train_epochs, use_cud
         plt.savefig(output_dir + '/losses.png')
     else:
         # Load a trained model and vocabulary that you have fine-tuned
-        model = Nertrain.from_pretrained(output_dir)
+        model = XLNetForTokenClassification.from_pretrained(output_dir)
+        tokenizer = XLNetTokenizer.from_pretrained(output_dir, do_lower_case=do_lower_case)
 
     if (use_cuda):
         model.cuda()
