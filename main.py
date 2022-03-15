@@ -18,7 +18,7 @@ def train_model(model, output_dir, useCuda, spacy_model_type = "1", grid_type = 
     path_valid_data = os.path.join(ROOT_DIR, 'data_valid_full.json')
 
     dropout = 1e-5
-    nIter   = 1
+    nIter   = 3
     
 
     now = datetime.now()
@@ -44,6 +44,8 @@ def train_model(model, output_dir, useCuda, spacy_model_type = "1", grid_type = 
         exit()
     elif model == str(6):
         trainxlnetModel(path_train_data_bert, output_dir, nIter, useCuda)
+        exit()
+
     else:
         exit("Wrong model selection")
 

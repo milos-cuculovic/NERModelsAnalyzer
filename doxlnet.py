@@ -196,7 +196,7 @@ def trainxlnetModel(jsonfile, output_dir, nIter, use_cuda):
     else:
         device = "cpu"
 
-    trainxlnet(output_dir, train_batch_size, True, int(nIter), use_cuda, False, 1, learning_rate,
+    trainxlnet(output_dir, train_batch_size, True, int(nIter), use_cuda, True, 1, learning_rate,
               weight_decay, warmup_proportion)
     
 def trainxlnetGrid(jsonfile, output_dir, nIter, use_cuda):
@@ -683,12 +683,9 @@ def trainxlnet(output_dir, train_batch_size, do_train, num_train_epochs, use_cud
             for step, batch in enumerate(tqdm(train_dataloader, desc="Iteration")):
                 batch = tuple(t.to(device) for t in batch)
                 input_ids, input_mask, label_ids,  l_mask = batch
-                print("input mask: " + str(input_mask.shape))
                 output = model(input_ids=input_ids,token_type_ids=None, attention_mask=input_mask, attention_mask_label= l_mask, labels=label_ids)
                 loss=output["loss"]
                 logits=output["logits"]
-                print("loss"+str(loss.shape))
-                print("loss"+str(loss.item()))
                 tr_loss += loss.item()
                 nb_tr_examples += input_ids.size(0)
                 nb_tr_steps += 1
@@ -741,12 +738,11 @@ def trainxlnet(output_dir, train_batch_size, do_train, num_train_epochs, use_cud
         logger.info("  Batch size = %d", eval_batch_size)
         all_input_ids = torch.tensor([f.input_ids for f in eval_features], dtype=torch.long)
         all_input_mask = torch.tensor([f.input_mask for f in eval_features], dtype=torch.long)
-        all_segment_ids = torch.tensor([f.segment_ids for f in eval_features], dtype=torch.long)
         all_label_ids = torch.tensor([f.label_id for f in eval_features], dtype=torch.long)
-        all_valid_ids = torch.tensor([f.valid_ids for f in eval_features], dtype=torch.long)
         all_lmask_ids = torch.tensor([f.label_mask for f in eval_features], dtype=torch.long)
-        eval_data = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids, all_valid_ids,
+        eval_data = TensorDataset(all_input_ids, all_input_mask, all_label_ids, 
                                   all_lmask_ids)
+
         # Run prediction for full data
         eval_sampler = SequentialSampler(eval_data)
         eval_dataloader = DataLoader(eval_data, sampler=eval_sampler, batch_size=eval_batch_size)
@@ -754,17 +750,15 @@ def trainxlnet(output_dir, train_batch_size, do_train, num_train_epochs, use_cud
         y_true = []
         y_pred = []
         label_map = {i: label for i, label in enumerate(label_list, 1)}
-        for input_ids, input_mask, segment_ids, label_ids, valid_ids, l_mask in tqdm(eval_dataloader,
+        for input_ids, input_mask, label_ids, l_mask in tqdm(eval_dataloader,
                                                                                      desc="Evaluating"):
             input_ids = input_ids.to(device)
             input_mask = input_mask.to(device)
-            segment_ids = segment_ids.to(device)
-            valid_ids = valid_ids.to(device)
             label_ids = label_ids.to(device)
             l_mask = l_mask.to(device)
 
             with torch.no_grad():
-                logits = model(input_ids, segment_ids, input_mask, valid_ids=valid_ids, attention_mask_label=l_mask)
+                logits = model(input_ids, input_mask,attention_mask_label=l_mask)
 
             logits = torch.argmax(F.log_softmax(logits, dim=2), dim=2)
             logits = logits.detach().cpu().numpy()

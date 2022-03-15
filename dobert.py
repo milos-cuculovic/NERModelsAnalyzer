@@ -826,7 +826,9 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
                             print(j)
                             print(label_ids[i][j])
 
-                        lab_pred = logits[i][j]
+                        lab_pred=logits[i][j]
+                        if lab_pred==len(label_map) or lab_pred==len(label_map)-1:
+                            lab_pred=1
                         temp_2.append(label_map[lab_pred])
         
         report = classification_report(y_true, y_pred, digits=4)
