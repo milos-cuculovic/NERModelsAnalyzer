@@ -209,9 +209,12 @@ def trainBERTModel(jsonfile, output_dir, nIter, use_cuda):
         device = "cuda"
     else:
         device = "cpu"
-
+    exclude = input("exclude label: ")
+    if len(exclude)<=1:
+        exclude="nolabel"
+    exclude=exclude.upper()
     trainBert(output_dir, train_batch_size, True, int(nIter), use_cuda, True, 1, learning_rate,
-              weight_decay, warmup_proportion)
+              weight_decay, warmup_proportion,exclude)
     
 def trainBERTGrid(jsonfile, output_dir, nIter, use_cuda):
     # # INITIAL
@@ -281,7 +284,7 @@ class InputFeatures(object):
         self.label_mask = label_mask
 
 
-def readfile(filename):
+def readfile(filename, exclude):
     '''
     read file
     '''
@@ -298,7 +301,10 @@ def readfile(filename):
             continue
         splits = line.split(' ')
         sentence.append(splits[0])
-        label.append(splits[-1][:-1])
+        if exclude in splits[-1][:-1]:
+            label.append("O")
+        else:
+            label.append(splits[-1][:-1])
 
     if len(sentence) > 0:
         data.append((sentence, label))
@@ -310,11 +316,11 @@ def readfile(filename):
 class DataProcessor(object):
     """Base class for data converters for sequence classification data sets."""
 
-    def get_train_examples(self, data_dir):
+    def get_train_examples(self, data_dir,exclude):
         """Gets a collection of `InputExample`s for the train set."""
         raise NotImplementedError()
 
-    def get_dev_examples(self, data_dir):
+    def get_dev_examples(self, data_dir,exclude):
         """Gets a collection of `InputExample`s for the dev set."""
         raise NotImplementedError()
 
@@ -323,28 +329,23 @@ class DataProcessor(object):
         raise NotImplementedError()
 
     @classmethod
-    def _read_tsv(cls, input_file, quotechar=None):
+    def _read_tsv(cls, input_file, exclude, quotechar=None):
         """Reads a tab separated value file."""
-        return readfile(input_file)
+        return readfile(input_file,exclude)
 
 
 class NerProcessor(DataProcessor):
     """Processor for the CoNLL-2003 data set."""
 
-    def get_train_examples(self, data_dir):
+    def get_train_examples(self, data_dir,exclude):
         """See base class."""
         return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "train.txt")), "train")
+            self._read_tsv(os.path.join(data_dir, "train.txt"), exclude), "train")
 
-    def get_dev_examples(self, data_dir):
+    def get_dev_examples(self, data_dir,exclude):
         """See base class."""
         return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "valid.txt")), "dev")
-
-    def get_test_examples(self, data_dir):
-        """See base class."""
-        return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "test.txt")), "test")
+            self._read_tsv(os.path.join(data_dir,"valid.txt"),exclude), "dev")
 
     def get_labels(self):
         return ["O", "B-LOCATION", "I-LOCATION", "B-TRIGGER", "I-TRIGGER",
@@ -590,7 +591,7 @@ def prediction(t, model_name):
 
 
 def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda, do_eval, indexEval,
-              learning_rate, weight_decay, warmup_proportion):
+              learning_rate, weight_decay, warmup_proportion,exclude):
     processors = {"ner": NerProcessor}
 
     n_gpu = torch.cuda.device_count()
@@ -624,7 +625,7 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
     train_examples = None
     num_train_optimization_steps = 0.0
     if do_train:
-        train_examples = processor.get_train_examples("")
+        train_examples = processor.get_train_examples("", exclude)
         num_train_optimization_steps = int(
             len(train_examples) / train_batch_size / gradient_accumulation_steps) * num_train_epochs
         if local_rank != -1:
@@ -768,7 +769,7 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
 
     if do_eval and (local_rank == -1 or torch.distributed.get_rank() == 0):
 
-        eval_examples = processor.get_dev_examples("")
+        eval_examples = processor.get_dev_examples("",exclude)
         eval_features = convert_examples_to_features(eval_examples, label_list, max_seq_length, tokenizer)
         logger.info("***** Running evaluation *****")
         logger.info("  Num examples = %d", len(eval_examples))
@@ -820,14 +821,19 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
                         break
                     else:
                         try:
-                            temp_1.append(label_map[label_ids[i][j]+1])
+                            if label_ids[i][j]!=len(label_map)-2:
+                                temp_1.append(label_map[label_ids[i][j]+1])
                         except:
                             print(i)
                             print(j)
                             print(label_ids[i][j])
 
                         lab_pred=logits[i][j]
+
                         if lab_pred==len(label_map) or lab_pred==len(label_map)-1:
+                            
+                            print(lab_pred)
+                            print(label_map[lab_pred])
                             lab_pred=1
                         temp_2.append(label_map[lab_pred])
         
