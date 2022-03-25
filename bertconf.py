@@ -27,6 +27,8 @@ def listededict(jsonpath):
             listdict.append(data)
     return listdict
 
+
+
 def concat(id1, id2, data):
         sample={}
         text_1=data[id1]["text"]
@@ -387,7 +389,6 @@ def trigConll(file,trigger):
                 f.write(line)
         f.close()
 
-
 def randomOverSamp(label,factor,path):
     numlab=countLab(label,path)
     goal=numlab*factor
@@ -571,3 +572,23 @@ def shuffleFile(file1,file2,file3):
              linesrest=shuffleFile(file3, file2,file3)
         f.close()
         return linesrest
+    
+
+def changeToOther(x,conll):
+    # Python program to replace text in a file
+    
+    f = open(conll, "r+")
+    
+    l = f.readlines()
+    c=0
+    for i in l:
+        if len(i.split())!=0:
+            if x in i.split()[-1]:
+                replacement=i.split()[0]+" O \n"
+                i=replacement
+                l[c]=i
+        c=c+1     
+    with open(conll,'w')as outfile:
+        for i in l:       
+            outfile.write(i)
+
