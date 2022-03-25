@@ -44,6 +44,8 @@ trigger = ['why', 'on the contrary','what','however','either','while','rather','
          'not just','not only','besides','after all','generally','similar to','too','like']
 
 
+label_list = ["O", "B-LOCATION", "I-LOCATION", "B-TRIGGER", "I-TRIGGER",
+                "B-MODAL", "I-MODAL", "B-ACTION", "I-ACTION", "B-CONTENT", "I-CONTENT", "[CLS]", "[SEP]"]
 
 class Nertrain(BertForTokenClassification):
 
@@ -212,7 +214,11 @@ def trainBERTModel(jsonfile, output_dir, nIter, use_cuda):
     exclude = input("exclude label: ")
     if len(exclude)<=1:
         exclude="nolabel"
-    exclude=exclude.upper()
+    else:
+        exclude=exclude.upper()
+        label_list.remove("B-"+exclude)
+        label_list.remove("I-"+exclude)
+    
     trainBert(output_dir, train_batch_size, True, int(nIter), use_cuda, True, 1, learning_rate,
               weight_decay, warmup_proportion,exclude)
     
@@ -348,8 +354,7 @@ class NerProcessor(DataProcessor):
             self._read_tsv(os.path.join(data_dir,"valid.txt"),exclude), "dev")
 
     def get_labels(self):
-        return ["O", "B-LOCATION", "I-LOCATION", "B-TRIGGER", "I-TRIGGER",
-                "B-MODAL", "I-MODAL", "B-ACTION", "I-ACTION", "B-CONTENT", "I-CONTENT", "[CLS]", "[SEP]"]
+        return label_list
 
     def _create_examples(self, lines, set_type):
         examples = []
@@ -386,7 +391,14 @@ def loopBerthyperparam(output_dir,num_train_epochs,use_cuda):
     i                   = 0
 
     list1_permutations = list(itertools.product(*hyperparam))
-
+    exclude = input("exclude label: ")
+    if len(exclude)<=1:
+        exclude="nolabel"
+    else:
+        exclude=exclude.upper()
+        label_list.remove("B-"+exclude)
+        label_list.remove("I-"+exclude)
+    
     for listtool in list1_permutations:
         i+= 1
         weight = listtool[0]
@@ -394,7 +406,7 @@ def loopBerthyperparam(output_dir,num_train_epochs,use_cuda):
         warm = listtool[2]
         trainbs = listtool[3]
 
-        trainBert(output_dir, trainbs, True, num_train_epochs, use_cuda, True, i, learning, weight, warm)
+        trainBert(output_dir, trainbs, True, num_train_epochs, use_cuda, True, i, learning, weight, warm,exclude)
 
     compareauto(len(list1_permutations), output_dir)
 
@@ -540,8 +552,6 @@ def prediction(t, model_name):
         model=mode,
         tokenizer=tokenize
     )
-    label_list = ["O", "B-LOCATION", "I-LOCATION", "B-TRIGGER", "I-TRIGGER",
-                  "B-MODAL", "I-MODAL", "B-ACTION", "I-ACTION", "B-CONTENT", "I-CONTENT", "[CLS]", "[SEP]"]
 
     #label_list = ["B-LOCATION", "I-LOCATION", "B-TRIGGER", "I-TRIGGER",
     #              "B-MODAL", "I-MODAL", "B-ACTION", "I-ACTION", "B-CONTENT", "I-CONTENT"]
