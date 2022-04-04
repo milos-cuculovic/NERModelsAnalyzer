@@ -30,7 +30,8 @@ import torch.multiprocessing as mp
 import torch.nn as nn
 import torch.optim as optim
 from torch.nn.parallel import DistributedDataParallel as DDP
-from bertconf import removEsc, sentenceMean, json_conll, trigConll, crossval
+from bertconf import removEsc, sentenceMean, json_conll, trigConll, crossval, changeToOther
+import shutil
 
 trigger = ['why', 'on the contrary','what','however','either','while','rather','instead of', 'when',
          'in order to','therefore','not only', 'afterwards','once again','or','in order to','in particular',
@@ -43,9 +44,10 @@ trigger = ['why', 'on the contrary','what','however','either','while','rather','
          'despite','accordingly','etc','always','what kind','unless','which one','if not','if so','even if',
          'not just','not only','besides','after all','generally','similar to','too','like']
 
-
-label_list = ["O", "B-LOCATION", "I-LOCATION", "B-TRIGGER", "I-TRIGGER",
+labelremove=["CONTENT"]
+lab_list=["O", "B-LOCATION", "I-LOCATION", "B-TRIGGER", "I-TRIGGER",
                 "B-MODAL", "I-MODAL", "B-ACTION", "I-ACTION", "B-CONTENT", "I-CONTENT", "[CLS]", "[SEP]"]
+
 
 class Nertrain(BertForTokenClassification):
 
@@ -183,6 +185,8 @@ class Ner:
 device = 'cpu'
 
 
+
+
 def trainBERTModel(jsonfile, output_dir, nIter, use_cuda):
 
     learning_rate       = 2e-05
@@ -211,16 +215,21 @@ def trainBERTModel(jsonfile, output_dir, nIter, use_cuda):
         device = "cuda"
     else:
         device = "cpu"
-    exclude = input("exclude label: ")
-    if len(exclude)<=1:
-        exclude="nolabel"
-    else:
-        exclude=exclude.upper()
-        label_list.remove("B-"+exclude)
-        label_list.remove("I-"+exclude)
     
+    shutil.copyfile(r'train.txt', r'train_temp.txt')
+    shutil.copyfile(r'valid.txt', r'valid_temp.txt')
+       
+    for i in labelremove:
+            print("here")
+            changeToOther(i,"train_temp.txt")
+            changeToOther(i,"valid_temp.txt")
+            lab_list.remove("I-"+i)
+            lab_list.remove("B-"+i)
+           
     trainBert(output_dir, train_batch_size, True, int(nIter), use_cuda, True, 1, learning_rate,
-              weight_decay, warmup_proportion,exclude)
+                weight_decay, warmup_proportion)
+    os.remove("train_temp.txt")
+    os.remove("valid_temp.txt")
     
 def trainBERTGrid(jsonfile, output_dir, nIter, use_cuda):
     # # INITIAL
@@ -249,8 +258,18 @@ def trainBERTGrid(jsonfile, output_dir, nIter, use_cuda):
     loopBerthyperparam(output_dir, int(nIter), use_cuda)
 
 def evaluation(output_dir, use_cuda):
-    trainBert(output_dir, 32, False, 1, use_cuda, True,"",2e-5,0.01,0.1)
-
+    
+    shutil.copyfile(r'train.txt', r'train_temp.txt')
+    
+    shutil.copyfile(r'valid.txt', r'valid_temp.txt')
+    for i in labelremove:
+        changeToOther(i,"train_temp.txt")
+        changeToOther(i,"valid_temp.txt")
+        lab_list.remove("I-"+i)
+        lab_list.remove("B-"+i)
+    trainBert(output_dir, 32, False, 1, use_cuda, True,"",2e-5,0.01,0.1,"train_temp.txt","valid_temp.txt")
+    os.remove("train_temp.txt")
+    os.remove("valid_temp.txt")
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt='%m/%d/%Y %H:%M:%S',
@@ -290,7 +309,7 @@ class InputFeatures(object):
         self.label_mask = label_mask
 
 
-def readfile(filename, exclude):
+def readfile(filename):
     '''
     read file
     '''
@@ -307,10 +326,7 @@ def readfile(filename, exclude):
             continue
         splits = line.split(' ')
         sentence.append(splits[0])
-        if exclude in splits[-1][:-1]:
-            label.append("O")
-        else:
-            label.append(splits[-1][:-1])
+        label.append(splits[-1][:-1])
 
     if len(sentence) > 0:
         data.append((sentence, label))
@@ -322,11 +338,11 @@ def readfile(filename, exclude):
 class DataProcessor(object):
     """Base class for data converters for sequence classification data sets."""
 
-    def get_train_examples(self, data_dir,exclude):
+    def get_train_examples(self, data_dir):
         """Gets a collection of `InputExample`s for the train set."""
         raise NotImplementedError()
 
-    def get_dev_examples(self, data_dir,exclude):
+    def get_dev_examples(self, data_dir):
         """Gets a collection of `InputExample`s for the dev set."""
         raise NotImplementedError()
 
@@ -335,26 +351,31 @@ class DataProcessor(object):
         raise NotImplementedError()
 
     @classmethod
-    def _read_tsv(cls, input_file, exclude, quotechar=None):
+    def _read_tsv(cls, input_file, quotechar=None):
         """Reads a tab separated value file."""
-        return readfile(input_file,exclude)
+        return readfile(input_file)
 
 
 class NerProcessor(DataProcessor):
     """Processor for the CoNLL-2003 data set."""
 
-    def get_train_examples(self, data_dir,exclude):
+    def get_train_examples(self, data_dir):
         """See base class."""
         return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "train.txt"), exclude), "train")
+            self._read_tsv(os.path.join(data_dir, "train_temp.txt")), "train")
 
-    def get_dev_examples(self, data_dir,exclude):
+    def get_dev_examples(self, data_dir):
         """See base class."""
         return self._create_examples(
-            self._read_tsv(os.path.join(data_dir,"valid.txt"),exclude), "dev")
+            self._read_tsv(os.path.join(data_dir, "valid_temp.txt")), "dev")
+
+    def get_test_examples(self, data_dir):
+        """See base class."""
+        return self._create_examples(
+            self._read_tsv(os.path.join(data_dir, "test.txt")), "test")
 
     def get_labels(self):
-        return label_list
+        return lab_list
 
     def _create_examples(self, lines, set_type):
         examples = []
@@ -391,14 +412,14 @@ def loopBerthyperparam(output_dir,num_train_epochs,use_cuda):
     i                   = 0
 
     list1_permutations = list(itertools.product(*hyperparam))
-    exclude = input("exclude label: ")
-    if len(exclude)<=1:
-        exclude="nolabel"
-    else:
-        exclude=exclude.upper()
-        label_list.remove("B-"+exclude)
-        label_list.remove("I-"+exclude)
+    shutil.copyfile(r'train.txt', r'train_temp.txt')
     
+    shutil.copyfile(r'valid.txt', r'valid_temp.txt')
+    for i in labelremove:
+        changeToOther(i,"train_temp.txt")
+        changeToOther(i,"valid_temp.txt")
+        lab_list.remove("I-"+i)
+        lab_list.remove("B-"+i)
     for listtool in list1_permutations:
         i+= 1
         weight = listtool[0]
@@ -406,8 +427,11 @@ def loopBerthyperparam(output_dir,num_train_epochs,use_cuda):
         warm = listtool[2]
         trainbs = listtool[3]
 
-        trainBert(output_dir, trainbs, True, num_train_epochs, use_cuda, True, i, learning, weight, warm,exclude)
+        trainBert(output_dir, trainbs, True, num_train_epochs, use_cuda, True, i, learning, weight, warm,
+                  "train_temp.txt","valid_temp.txt")
 
+    os.remove("train_temp.txt")
+    os.remove("valid_temp.txt")
     compareauto(len(list1_permutations), output_dir)
 
 def compareauto(sizecombine,filename):
@@ -552,6 +576,8 @@ def prediction(t, model_name):
         model=mode,
         tokenizer=tokenize
     )
+    label_list = ["O", "B-LOCATION", "I-LOCATION", "B-TRIGGER", "I-TRIGGER",
+                  "B-MODAL", "I-MODAL", "B-ACTION", "I-ACTION",  "[CLS]", "[SEP]"]
 
     #label_list = ["B-LOCATION", "I-LOCATION", "B-TRIGGER", "I-TRIGGER",
     #              "B-MODAL", "I-MODAL", "B-ACTION", "I-ACTION", "B-CONTENT", "I-CONTENT"]
@@ -569,8 +595,6 @@ def prediction(t, model_name):
         label_name = label_list[pos]
         word = dic['word']
 
-        if word == "'":
-            label_name = "I-CONTENT"
 
         if label_name in ("O", "[CLS]", "[SEP]"):
             continue
@@ -601,7 +625,7 @@ def prediction(t, model_name):
 
 
 def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda, do_eval, indexEval,
-              learning_rate, weight_decay, warmup_proportion,exclude):
+              learning_rate, weight_decay, warmup_proportion):
     processors = {"ner": NerProcessor}
 
     n_gpu = torch.cuda.device_count()
@@ -627,7 +651,7 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
     task_name = "ner".lower()
 
     processor = processors[task_name]()
-    label_list = processor.get_labels()
+    label_list =lab_list
     num_labels = len(label_list) + 1
 
     tokenizer = BertTokenizer.from_pretrained(bert_model, do_lower_case=do_lower_case)
@@ -635,7 +659,7 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
     train_examples = None
     num_train_optimization_steps = 0.0
     if do_train:
-        train_examples = processor.get_train_examples("", exclude)
+        train_examples = processor.get_train_examples("")
         num_train_optimization_steps = int(
             len(train_examples) / train_batch_size / gradient_accumulation_steps) * num_train_epochs
         if local_rank != -1:
@@ -749,7 +773,6 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
         # Save a trained model and the associated configuration
         print(train_losses)
         print(len(train_losses))
-
         model_to_save.save_pretrained(output_dir)
         tokenizer.save_pretrained(output_dir)
         label_map = {i: label for i, label in enumerate(label_list, 1)}
@@ -777,9 +800,9 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
         model.cuda()
     model.to(device)
 
-    if do_eval and (local_rank == -1 or torch.distributed.get_rank() == 0):
-
-        eval_examples = processor.get_dev_examples("",exclude)
+    if do_eval:
+        
+        eval_examples = processor.get_dev_examples("")
         eval_features = convert_examples_to_features(eval_examples, label_list, max_seq_length, tokenizer)
         logger.info("***** Running evaluation *****")
         logger.info("  Num examples = %d", len(eval_examples))
@@ -831,21 +854,18 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
                         break
                     else:
                         try:
-                            if label_ids[i][j]!=len(label_map)-2:
-                                temp_1.append(label_map[label_ids[i][j]+1])
+                            print(label_ids[i][j])
+                            temp_1.append(label_map[label_ids[i][j]])
                         except:
                             print(i)
                             print(j)
                             print(label_ids[i][j])
 
                         lab_pred=logits[i][j]
-
-                        if lab_pred==len(label_map) or lab_pred==len(label_map)-1:
-                            
-                            print(lab_pred)
-                            print(label_map[lab_pred])
+                        if "CLS" in label_map[lab_pred] or  "SEP" in label_map[lab_pred]:
                             lab_pred=1
-                        temp_2.append(label_map[lab_pred])
+                        
+                        print(temp_2)
         
         report = classification_report(y_true, y_pred, digits=4)
         flat_y_true = [i for j in y_true for i in j]

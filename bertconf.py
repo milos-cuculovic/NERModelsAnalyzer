@@ -584,7 +584,7 @@ def changeToOther(x,conll):
     for i in l:
         if len(i.split())!=0:
             if x in i.split()[-1]:
-                replacement=i.split()[0]+" O \n"
+                replacement=i.split()[0]+" O\n"
                 i=replacement
                 l[c]=i
         c=c+1     
