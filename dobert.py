@@ -33,9 +33,9 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from bertconf import removEsc, sentenceMean, json_conll, trigConll, crossval, changeToOther
 import shutil
 
-trigger = ['why', 'on the contrary','what','however','either','while','rather','instead of', 'when',
+trigger= ['why', 'on the contrary','what','however','either','while','rather','instead of', 'when','than',
          'in order to','therefore','not only', 'afterwards','once again','or','in order to','in particular',
-         'also','if not','if not then','not only','albeit','because','is that','that','without','who',
+         'also','if not','if not then','and','not only','does','albeit','because','is that','that','without','who',
          'whether','is it', 'was it','such as','were they','are they','thus','again','given that','given the',
          'how many','except','nor','both','whose','especialls','for instance','is this','similarly','were there',
          'are there','is there','for the time being','based on','in particular','as currently','perhaps','once',
@@ -267,7 +267,7 @@ def evaluation(output_dir, use_cuda):
         changeToOther(i,"valid_temp.txt")
         lab_list.remove("I-"+i)
         lab_list.remove("B-"+i)
-    trainBert(output_dir, 32, False, 1, use_cuda, True,"",2e-5,0.01,0.1,"train_temp.txt","valid_temp.txt")
+    trainBert(output_dir, 32, False, 1, use_cuda, True,"",2e-5,0.01,0.1)
     os.remove("train_temp.txt")
     os.remove("valid_temp.txt")
 
@@ -421,14 +421,13 @@ def loopBerthyperparam(output_dir,num_train_epochs,use_cuda):
         lab_list.remove("I-"+i)
         lab_list.remove("B-"+i)
     for listtool in list1_permutations:
-        i+= 1
         weight = listtool[0]
         learning = listtool[1]
         warm = listtool[2]
         trainbs = listtool[3]
 
-        trainBert(output_dir, trainbs, True, num_train_epochs, use_cuda, True, i, learning, weight, warm,
-                  "train_temp.txt","valid_temp.txt")
+        trainBert(output_dir, trainbs, True, num_train_epochs, use_cuda, True, i, learning, weight, warm)
+
 
     os.remove("train_temp.txt")
     os.remove("valid_temp.txt")
