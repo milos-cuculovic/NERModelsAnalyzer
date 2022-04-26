@@ -421,6 +421,7 @@ def loopBerthyperparam(output_dir,num_train_epochs,use_cuda):
         lab_list.remove("I-"+i)
         lab_list.remove("B-"+i)
     for listtool in list1_permutations:
+        i += 1
         weight = listtool[0]
         learning = listtool[1]
         warm = listtool[2]
