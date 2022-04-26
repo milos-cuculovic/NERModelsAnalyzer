@@ -409,7 +409,7 @@ def loopBerthyperparam(output_dir,num_train_epochs,use_cuda):
     warmupproportion    = [0.1]
     trainbatchsize      = [32, 30, 28, 26, 24, 22, 20, 18, 16]
     hyperparam          = [weightdecay, learningrate, warmupproportion, trainbatchsize]
-    i                   = 0
+    k                   = 0
 
     list1_permutations = list(itertools.product(*hyperparam))
     shutil.copyfile(r'train.txt', r'train_temp.txt')
@@ -421,13 +421,13 @@ def loopBerthyperparam(output_dir,num_train_epochs,use_cuda):
         lab_list.remove("I-"+i)
         lab_list.remove("B-"+i)
     for listtool in list1_permutations:
-        i += 1
+        k += 1
         weight = listtool[0]
         learning = listtool[1]
         warm = listtool[2]
         trainbs = listtool[3]
 
-        trainBert(output_dir, trainbs, True, num_train_epochs, use_cuda, True, i, learning, weight, warm)
+        trainBert(output_dir, trainbs, True, num_train_epochs, use_cuda, True, k, learning, weight, warm)
 
 
     os.remove("train_temp.txt")

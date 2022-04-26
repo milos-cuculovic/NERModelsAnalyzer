@@ -207,9 +207,9 @@ def json_conll(jsonPath,conllPath,conlname):
                 while incre<longS and sentence[incre]!=" " and sentence[incre] not in string.punctuation :
                     wordd=wordd+sentence[incre]
                     removeponct=['"',"-","(",")"]
-                    for let in removeponct:
-                        if let in wordd:
-                            wordd=wordd.replace(let,"")
+                    #for let in removeponct:
+                    #    if let in wordd:
+                    #        wordd=wordd.replace(let,"")
                     incre=incre+1
 
                 if incre!=deb:
@@ -575,12 +575,9 @@ def shuffleFile(file1,file2,file3):
     
 
 def changeToOther(x,conll):
-    # Python program to replace text in a file
-    
     f = open(conll, "r+")
-    
     l = f.readlines()
-    c=0
+    c = 0
     for i in l:
         if len(i.split())!=0:
             if x in i.split()[-1]:
