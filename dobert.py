@@ -853,7 +853,6 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
                         break
                     else:
                         try:
-                            print(label_ids[i][j])
                             temp_1.append(label_map[label_ids[i][j]])
                         except:
                             print(i)
@@ -861,10 +860,10 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
                             print(label_ids[i][j])
 
                         lab_pred=logits[i][j]
+                        temp_2.append(label_map[lab_pred])
                         if "CLS" in label_map[lab_pred] or  "SEP" in label_map[lab_pred]:
                             lab_pred=1
                         
-                        print(temp_2)
         
         report = classification_report(y_true, y_pred, digits=4)
         flat_y_true = [i for j in y_true for i in j]
