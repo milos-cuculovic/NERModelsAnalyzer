@@ -435,6 +435,13 @@ def loopBerthyperparam(output_dir,num_train_epochs,use_cuda):
 
 def compareauto(sizecombine,filename):
     results = {}
+    precision_loc = [0, 0]
+    recall_loc = [0, 0]
+    f1score_loc = [0, 0]
+    precision_wght = [0, 0]
+    recall_wght = [0, 0]
+    f1score_wght = [0, 0]
+
     for i in range(1, sizecombine + 1):
         with open(filename + str(i) + "/eval_results.txt") as file:
             for line in file:
@@ -443,11 +450,13 @@ def compareauto(sizecombine,filename):
                     listword = line.split()
                     if len(listword) > 0:
                         if listword[0] == "LOCATION":
-                            precision, recall, f1score = get_best_grid_scores(listword, i)
-                            results['LOCATION'] = [precision, recall, f1score]
+                            precision_loc, recall_loc, f1score_loc \
+                                = get_best_grid_scores(precision_loc, recall_loc, f1score_loc, listword, i)
+                            results['LOCATION'] = [precision_loc, recall_loc, f1score_loc]
                         if listword[0] == "weighted":
-                            precision, recall, f1score = get_best_grid_scores(listword[1:], i)
-                            results['weighted'] = [precision, recall, f1score]
+                            precision_wght, recall_wght, f1score_wght\
+                                = get_best_grid_scores(precision_wght, recall_wght, f1score_wght, listword[1:], i)
+                            results['weighted'] = [precision_wght, recall_wght, f1score_wght]
 
 
     for result in results:
@@ -457,11 +466,7 @@ def compareauto(sizecombine,filename):
         print("   f1score n " + str(results[result][2][0]) + " - " + str(results[result][2][1]))
 
 
-def get_best_grid_scores(listword, i):
-    precision = [0, 0]
-    recall = [0, 0]
-    f1score = [0, 0]
-
+def get_best_grid_scores(precision, recall, f1score, listword, i):
     if precision[1] < float(listword[1]):
         precision[1] = float(listword[1])
         precision[0] = i
