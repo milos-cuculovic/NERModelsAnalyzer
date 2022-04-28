@@ -293,25 +293,23 @@ def compareauto(sizecombine,filename):
     precision=[0,0]
     recall=[0,0]
     f1score=[0,0]
-    for i in range(1, sizecombine + 1):
-        with open(filename + str(i) + "/eval_results.txt") as file:
-            for line in file:
-                line[0].split()
+    for i in range(1,sizecombine+1):
+           with open(filename+str(i)+"/eval_results.txt") as file:
                 for line in file:
-                    # print(line)
-                    listword = line.split()
-                    if len(listword) > 0:
-                        # print(listword)
-                        if listword[0] == "LOCATION":
-                            if precision[1] < float(listword[1]):
-                                precision[1] = float(listword[1])
-                                precision[0] = i
-                            if recall[1] < float(listword[2]):
-                                recall[1] = float(listword[2])
-                                recall[0] = i
-                            if f1score[1] < float(listword[3]):
-                                f1score[1] = float(listword[3])
-                                f1score[0] = i
+                         listword=line.split()
+                         if len(listword)>0:
+                             # print(listword)
+                             if listword[0]=="OCATION":
+                                print(listword[2])
+                                if precision[1]<float(listword[1]):
+                                      precision[1]=float(listword[1])
+                                      precision[0]=i
+                                if recall[1]<float(listword[2]):
+                                      recall[1]=float(listword[2])
+                                      recall[0]=i
+                                if f1score[1]<float(listword[3]):
+                                      f1score[1]=float(listword[3])
+                                      f1score[0]=i
 
     print("precision n " + str(precision[0]) + " - " + str(precision[1]))
     print("recall n " + str(recall[0]) + " - " + str(recall[1]))
