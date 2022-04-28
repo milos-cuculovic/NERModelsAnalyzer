@@ -411,7 +411,7 @@ def loopBerthyperparam(output_dir,num_train_epochs,use_cuda):
     hyperparam          = [weightdecay, learningrate, warmupproportion, trainbatchsize]
     k                   = 0
 
-    list1_permutations = list(itertools.product(*hyperparam))
+    list_permutations = list(itertools.product(*hyperparam))
     shutil.copyfile(r'train.txt', r'train_temp.txt')
     
     shutil.copyfile(r'valid.txt', r'valid_temp.txt')
@@ -420,7 +420,7 @@ def loopBerthyperparam(output_dir,num_train_epochs,use_cuda):
         changeToOther(i,"valid_temp.txt")
         lab_list.remove("I-"+i)
         lab_list.remove("B-"+i)
-    for listtool in list1_permutations:
+    for listtool in list_permutations:
         k += 1
         weight = listtool[0]
         learning = listtool[1]
@@ -429,40 +429,50 @@ def loopBerthyperparam(output_dir,num_train_epochs,use_cuda):
 
         trainBert(output_dir, trainbs, True, num_train_epochs, use_cuda, True, k, learning, weight, warm)
 
-
     os.remove("train_temp.txt")
     os.remove("valid_temp.txt")
-    compareauto(len(list1_permutations), output_dir)
+    compareauto(len(list_permutations), output_dir)
 
 def compareauto(sizecombine,filename):
-    precision=[0,0]
-    recall=[0,0]
-    f1score=[0,0]
+    results = {}
     for i in range(1, sizecombine + 1):
         with open(filename + str(i) + "/eval_results.txt") as file:
             for line in file:
                 line[0].split()
                 for line in file:
-                    # print(line)
                     listword = line.split()
                     if len(listword) > 0:
-                        # print(listword)
                         if listword[0] == "LOCATION":
-                            if precision[1] < float(listword[1]):
-                                precision[1] = float(listword[1])
-                                precision[0] = i
-                            if recall[1] < float(listword[2]):
-                                recall[1] = float(listword[2])
-                                recall[0] = i
-                            if f1score[1] < float(listword[3]):
-                                f1score[1] = float(listword[3])
-                                f1score[0] = i
-
-    print("precision n " + str(precision[0]) + " - " + str(precision[1]))
-    print("recall n " + str(recall[0]) + " - " + str(recall[1]))
-    print("f1score n " + str(f1score[0]) + " - " + str(f1score[1]))
+                            precision, recall, f1score = get_best_grid_scores(listword, i)
+                            results['LOCATION'] = [precision, recall, f1score]
+                        if listword[0] == "weighted":
+                            precision, recall, f1score = get_best_grid_scores(listword[1:], i)
+                            results['weighted'] = [precision, recall, f1score]
 
 
+    for result in results:
+        print(result)
+        print("   precision n " + str(results[result][0][0]) + " - " + str(results[result][0][1]))
+        print("   recall n " + str(results[result][1][0]) + " - " + str(results[result][1][1]))
+        print("   f1score n " + str(results[result][2][0]) + " - " + str(results[result][2][1]))
+
+
+def get_best_grid_scores(listword, i):
+    precision = [0, 0]
+    recall = [0, 0]
+    f1score = [0, 0]
+
+    if precision[1] < float(listword[1]):
+        precision[1] = float(listword[1])
+        precision[0] = i
+    if recall[1] < float(listword[2]):
+        recall[1] = float(listword[2])
+        recall[0] = i
+    if f1score[1] < float(listword[3]):
+        f1score[1] = float(listword[3])
+        f1score[0] = i
+
+    return precision, recall, f1score
                   
 def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer):
     """Loads a data file into a list of `InputBatch`s."""
