@@ -443,19 +443,17 @@ def compareauto(sizecombine,filename):
             for line in file:
                 line[0].split()
                 for line in file:
-                 # print(line)
                      listword=line.split()
                      if len(listword)>0:
-                         # print(listword)
                          if listword[0]=="LOCATION":
-                            if precision[1]<float(listword[2]):
-                                  precision[1]=float(listword[2])
+                            if precision[1]<float(listword[1]):
+                                  precision[1]=float(listword[1])
                                   precision[0]=i
-                            if recall[1]<float(listword[3]):
-                                  recall[1]=float(listword[3])
+                            if recall[1]<float(listword[2]):
+                                  recall[1]=float(listword[2])
                                   recall[0]=i
-                            if f1score[1]<float(listword[4]):
-                                  f1score[1]=float(listword[4])
+                            if f1score[1]<float(listword[3]):
+                                  f1score[1]=float(listword[3])
                                   f1score[0]=i
     print("precision n "+str(precision[0]))
     print("recall n "+str(recall[0]))
