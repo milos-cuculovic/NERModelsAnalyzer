@@ -439,7 +439,7 @@ def compareauto(sizecombine,filename):
     recall=[0,0]
     f1score=[0,0]
     for i in range(1,sizecombine+1):
-       with open(filename+str(1)+"/eval_results.txt") as file:
+       with open(filename+str(i)+"/eval_results.txt") as file:
             for line in file:
                 line[0].split()
                 for line in file:
@@ -447,7 +447,7 @@ def compareauto(sizecombine,filename):
                      listword=line.split()
                      if len(listword)>0:
                          # print(listword)
-                         if listword[0]=="micro":
+                         if listword[0]=="LOCATION":
                             if precision[1]<float(listword[2]):
                                   precision[1]=float(listword[2])
                                   precision[0]=i
