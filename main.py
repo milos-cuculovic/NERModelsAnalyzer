@@ -18,8 +18,7 @@ def train_model(model, output_dir, useCuda, spacy_model_type = "1", grid_type = 
     path_valid_data = os.path.join(ROOT_DIR, 'valid_temp_test.spacy')
 
     dropout = 1e-5
-    nIter   = 3
-    
+    nIter   = 1
 
     now = datetime.now()
     current_time = now.strftime("%H:%M:%S")
@@ -131,7 +130,7 @@ if __name__ == '__main__':
             spacy_model_type = input("1. Blank; 2. en_core_web_trf; 3. en_core_web_sm (Default 1): ")
         train_model(model, os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + modelFile, useCuda, spacy_model_type)
     elif action_type==str(4):
-        grid_type = input("Grid type: (1. Bert; 2. RoBerta): ")
+        grid_type = input("Grid type: (1. Bert; 2. RoBerta; 3. XLNet): ")
         modelFile = input("Enter the Model name to save: ")
         useCuda = input("Use Cuda? (y or n, default n): ")
         if useCuda == "y":

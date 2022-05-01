@@ -14,9 +14,9 @@ from pytorch_transformers import (AdamW,
                                   BertForTokenClassification, BertTokenizer,
                                   WarmupLinearSchedule)
 from transformers import pipeline, AutoModelForTokenClassification
-from transformers import BertConfig
+from transformers import BertConfig, BertForTokenClassification
 from transformers import pipeline, AutoModelForTokenClassification
-from transformers import BertTokenizer, BertForTokenClassification
+from transformers import BertTokenizer
 
 import torch
 from tqdm import tqdm, trange
@@ -32,6 +32,7 @@ import torch.optim as optim
 from torch.nn.parallel import DistributedDataParallel as DDP
 from bertconf import removEsc, sentenceMean, json_conll, trigConll, crossval, changeToOther
 import shutil
+from grid_search_results_print import generate_grid_search_results_print
 
 trigger= ['why', 'on the contrary','what','however','either','while','rather','instead of', 'when','than',
          'in order to','therefore','not only', 'afterwards','once again','or','in order to','in particular',
@@ -82,7 +83,6 @@ class Nertrain(BertForTokenClassification):
 
 
 class BertNer(BertForTokenClassification):
-
     def forward(self, input_ids, token_type_ids=None, attention_mask=None, valid_ids=None):
         sequence_output = self.bert(input_ids, token_type_ids, attention_mask, head_mask=None)[0]
         batch_size,max_len,feat_dim = sequence_output.shape
@@ -427,13 +427,13 @@ def loopBerthyperparam(output_dir,num_train_epochs,use_cuda):
         warm = listtool[2]
         trainbs = listtool[3]
 
-        trainBert(output_dir, trainbs, True, num_train_epochs, use_cuda, True, k, learning, weight, warm)
+        #trainBert(output_dir, trainbs, True, num_train_epochs, use_cuda, True, k, learning, weight, warm)
 
     os.remove("train_temp.txt")
     os.remove("valid_temp.txt")
-    compareauto(len(list_permutations), output_dir)
+    compareauto(list_permutations, output_dir)
 
-def compareauto(sizecombine,filename):
+def compareauto(list_permutations,filename):
     results = {}
     precision_loc = [0, 0]
     recall_loc = [0, 0]
@@ -441,8 +441,9 @@ def compareauto(sizecombine,filename):
     precision_wght = [0, 0]
     recall_wght = [0, 0]
     f1score_wght = [0, 0]
+    grid_search = {}
 
-    for i in range(1, sizecombine + 1):
+    for i in range(1, len(list_permutations) + 1):
         with open(filename + str(i) + "/eval_results.txt") as file:
             for line in file:
                 line[0].split()
@@ -453,17 +454,24 @@ def compareauto(sizecombine,filename):
                             precision_loc, recall_loc, f1score_loc \
                                 = get_best_grid_scores(precision_loc, recall_loc, f1score_loc, listword, i)
                             results['LOCATION'] = [precision_loc, recall_loc, f1score_loc]
+                            weightdecay = list_permutations[i][0]
+                            learningrate = list_permutations[i][1]
+                            trainbatchsize = list_permutations[i][3]
+
+
+                            grid_search[i] = [weightdecay, learningrate, trainbatchsize, f1score_loc[1]]
                         if listword[0] == "weighted":
                             precision_wght, recall_wght, f1score_wght\
                                 = get_best_grid_scores(precision_wght, recall_wght, f1score_wght, listword[1:], i)
                             results['weighted'] = [precision_wght, recall_wght, f1score_wght]
-
 
     for result in results:
         print(result)
         print("   precision n " + str(results[result][0][0]) + " - " + str(results[result][0][1]))
         print("   recall n " + str(results[result][1][0]) + " - " + str(results[result][1][1]))
         print("   f1score n " + str(results[result][2][0]) + " - " + str(results[result][2][1]))
+
+    #generate_grid_search_results_print(grid_search)
 
 
 def get_best_grid_scores(precision, recall, f1score, listword, i):

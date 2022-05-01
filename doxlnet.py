@@ -1,5 +1,3 @@
-""
-
 import os
 from torch import nn
 import json
@@ -9,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from pytorch_transformers import (AdamW,
                                   WarmupLinearSchedule)
-from transformers import XLNetTokenizer, XLNetForTokenClassification,  XLNetConfig   
+from transformers import XLNetTokenizer, XLNetForTokenClassification, XLNetConfig
 
 from transformers import pipeline, AutoModelForTokenClassification
 from transformers import pipeline, AutoModelForTokenClassification
@@ -26,12 +24,12 @@ import torch.multiprocessing as mp
 import torch.nn as nn
 import torch.optim as optim
 from torch.nn.parallel import DistributedDataParallel as DDP
-from bertconf import removEsc, sentenceMean, json_conll, trigConll, crossval
+from bertconf import removEsc, sentenceMean, json_conll, trigConll, crossval, changeToOther
 import shutil
 
-trigger = ['why', 'on the contrary','what','however','either','while','rather','instead of', 'when',
+trigger= ['why', 'on the contrary','what','however','either','while','rather','instead of', 'when','than',
          'in order to','therefore','not only', 'afterwards','once again','or','in order to','in particular',
-         'also','if not','if not then','not only','albeit','because','is that','that','without','who',
+         'also','if not','if not then','and','not only','does','albeit','because','is that','that','without','who',
          'whether','is it', 'was it','such as','were they','are they','thus','again','given that','given the',
          'how many','except','nor','both','whose','especialls','for instance','is this','similarly','were there',
          'are there','is there','for the time being','based on','in particular','as currently','perhaps','once',
@@ -40,38 +38,9 @@ trigger = ['why', 'on the contrary','what','however','either','while','rather','
          'despite','accordingly','etc','always','what kind','unless','which one','if not','if so','even if',
          'not just','not only','besides','after all','generally','similar to','too','like']
 
-
-
-# class Nertrain(XLNetForTokenClassification):
-
-#     def forward(self, input_ids, token_type_ids=None, attention_mask=None, labels=None, valid_ids=None,
-#                 attention_mask_label=None):
-#         sequence_output = self.transformer(input_ids, token_type_ids, attention_mask, head_mask=None)[0]
-#         batch_size, max_len, feat_dim = sequence_output.shape
-#         valid_output = torch.zeros(batch_size, max_len, feat_dim, dtype=torch.float32, device=device)
-#         for i in range(batch_size):
-#             jj = -1
-#             for j in range(max_len):
-#                 if valid_ids[i][j].item() == 1:
-#                     jj += 1
-#                     valid_output[i][jj] = sequence_output[i][j]
-#         sequence_output = self.dropout(valid_output)
-#         logits = self.classifier(sequence_output)
-
-#         if labels is not None:
-#             loss_fct = nn.CrossEntropyLoss(ignore_index=0)
-#             # Only keep active parts of the loss
-#             # attention_mask_label = None
-#             if attention_mask_label is not None:
-#                 active_loss = attention_mask_label.view(-1) == 1
-#                 active_logits = logits.view(-1, self.num_labels)[active_loss]
-#                 active_labels = labels.view(-1)[active_loss]
-#                 loss = loss_fct(active_logits, active_labels)
-#             else:
-#                 loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
-#             return loss
-#         else:
-#             return logits
+labelremove=["CONTENT"]
+lab_list=["O", "B-LOCATION", "I-LOCATION", "B-TRIGGER", "I-TRIGGER",
+                "B-MODAL", "I-MODAL", "B-ACTION", "I-ACTION", "B-CONTENT", "I-CONTENT"]
 
 
 # class XLNetNer(XLNetForTokenClassification):
@@ -92,20 +61,21 @@ trigger = ['why', 'on the contrary','what','however','either','while','rather','
 
 class Ner:
 
-    def __init__(self,model_dir: str):
-        self.model , self.tokenizer, self.model_config = self.load_model(model_dir)
+    def __init__(self, model_dir: str):
+        self.model, self.tokenizer, self.model_config = self.load_model(model_dir)
         self.label_map = self.model_config["label_map"]
         self.max_seq_length = self.model_config["max_seq_length"]
-        self.label_map = {int(k):v for k,v in self.label_map.items()}
+        self.label_map = {int(k): v for k, v in self.label_map.items()}
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model = self.model.to(self.device)
         self.model.eval()
 
     def load_model(self, model_dir: str, model_config: str = "model_config.json"):
-        model_config = os.path.join(model_dir,model_config)
+        model_config = os.path.join(model_dir, model_config)
         model_config = json.load(open(model_config))
         model = XLNetForTokenClassification.from_pretrained(model_dir)
-        tokenizer = XLNetTokenizer.from_pretrained(model_dir, do_lower_case=model_config["do_lower"],return_tensors="pt")
+        tokenizer = XLNetTokenizer.from_pretrained(model_dir, do_lower_case=model_config["do_lower"],
+                                                   return_tensors="pt")
         return model, tokenizer, model_config
 
     def tokenize(self, text: str):
@@ -113,7 +83,7 @@ class Ner:
         words = word_tokenize(text)
         tokens = []
         valid_positions = []
-        for i,word in enumerate(words):
+        for i, word in enumerate(words):
             token = self.tokenizer.tokenize(word)
             tokens.extend(token)
             for i in range(len(token)):
@@ -126,70 +96,65 @@ class Ner:
     def preprocess(self, text: str):
         """ preprocess """
         tokens, valid_positions = self.tokenize(text)
-        ## insert "[CLS]"
-        tokens.insert(0,"[CLS]")
-        valid_positions.insert(0,1)
-        ## insert "[SEP]"
-        tokens.append("[SEP]")
-        valid_positions.append(1)
         input_ids = self.tokenizer.convert_tokens_to_ids(tokens)
         input_mask = [1] * len(input_ids)
         while len(input_ids) < self.max_seq_length:
             input_ids.append(0)
             input_mask.append(0)
             valid_positions.append(0)
-        return input_ids,input_mask,valid_positions
+        return input_ids, input_mask, valid_positions
 
     def predict(self, text: str):
-        input_ids,input_mask = self.preprocess(text)
-        input_ids = torch.tensor([input_ids],dtype=torch.long,device=self.device)
-        input_mask = torch.tensor([input_mask],dtype=torch.long,device=self.device)
+        input_ids, input_mask = self.preprocess(text)
+        input_ids = torch.tensor([input_ids], dtype=torch.long, device=self.device)
+        input_mask = torch.tensor([input_mask], dtype=torch.long, device=self.device)
         with torch.no_grad():
             logits = self.model(input_ids, input_mask)
-        logits = F.softmax(logits,dim=2)
-        logits_label = torch.argmax(logits,dim=2)
+        logits = F.softmax(logits, dim=2)
+        logits_label = torch.argmax(logits, dim=2)
         logits_label = logits_label.detach().cpu().numpy().tolist()[0]
 
-        logits_confidence = [values[label].item() for values,label in zip(logits[0],logits_label)]
+        logits_confidence = [values[label].item() for values, label in zip(logits[0], logits_label)]
 
         logits = []
         pos = 0
-        
+
         logits.pop()
 
-        labels = [(self.label_map[label],confidence) for label,confidence in logits]
+        labels = [(self.label_map[label], confidence) for label, confidence in logits]
         words = word_tokenize(text)
         assert len(labels) == len(words)
-        output = [{"word":word,"tag":label,"confidence":confidence} for word,(label,confidence) in zip(words,labels)]
+        output = [{"word": word, "tag": label, "confidence": confidence} for word, (label, confidence) in
+                  zip(words, labels)]
         return output
+
 
 device = 'cpu'
 
 
 def trainxlnetModel(jsonfile, output_dir, nIter, use_cuda):
+    learning_rate = 2e-05
+    weight_decay = 0.001
+    warmup_proportion = 0.1
 
-    learning_rate       = 2e-05
-    weight_decay        = 0.001
-    warmup_proportion   = 0.1
-
-    train_batch_size    = 26
+    train_batch_size = 26
 
     # INITIAL
     removEsc(os.path.abspath(jsonfile))
 
     # STEP ONE cross validation
-    #crossval(os.path.abspath(jsonfile), os.path.abspath(""))
+    # crossval(os.path.abspath(jsonfile), os.path.abspath(""))
 
     # STEP TWO remove sentence without action and location
-    #sentenceMean(os.path.abspath("train.json"))
+    # sentenceMean(os.path.abspath("train.json"))
 
     # STEP THREE convert json to conll
-    #json_conll(os.path.abspath("train.json"), os.path.abspath(""), 'train.txt')
-    #json_conll(os.path.abspath("valid.json"), os.path.abspath(""), 'valid.txt')
+    # json_conll(os.path.abspath("train.json"), os.path.abspath(""), 'train.txt')
+    # json_conll(os.path.abspath("valid.json"), os.path.abspath(""), 'valid.txt')
 
     # STEP FOUR REPLACE TRIGGER
-    #trigConll(os.path.abspath("train.txt"), trigger)
-    #trigConll(os.path.abspath("valid.txt"), trigger)
+    # trigConll(os.path.abspath("train.txt"), trigger)
+    # trigConll(os.path.abspath("valid.txt"), trigger)
 
     global device
     if use_cuda == True:
@@ -198,8 +163,9 @@ def trainxlnetModel(jsonfile, output_dir, nIter, use_cuda):
         device = "cpu"
 
     trainxlnet(output_dir, train_batch_size, True, int(nIter), use_cuda, True, 1, learning_rate,
-              weight_decay, warmup_proportion)
-    
+               weight_decay, warmup_proportion)
+
+
 def trainxlnetGrid(jsonfile, output_dir, nIter, use_cuda):
     # # INITIAL
     # removEsc(os.path.abspath(jsonfile))
@@ -226,8 +192,9 @@ def trainxlnetGrid(jsonfile, output_dir, nIter, use_cuda):
 
     loopxlnethyperparam(output_dir, int(nIter), use_cuda)
 
+
 def evaluation(output_dir, use_cuda):
-    trainxlnet(output_dir, 32, False, 1, use_cuda, True,"",2e-5,0.01,0.1)
+    trainxlnet(output_dir, 32, False, 1, use_cuda, True, "", 2e-5, 0.01, 0.1)
 
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
@@ -321,12 +288,12 @@ class NerProcessor(DataProcessor):
     def get_train_examples(self, data_dir):
         """See base class."""
         return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "train.txt")), "train")
+            self._read_tsv(os.path.join(data_dir, "train_temp.txt")), "train")
 
     def get_dev_examples(self, data_dir):
         """See base class."""
         return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "valid.txt")), "dev")
+            self._read_tsv(os.path.join(data_dir, "valid_temp.txt")), "dev")
 
     def get_test_examples(self, data_dir):
         """See base class."""
@@ -334,8 +301,7 @@ class NerProcessor(DataProcessor):
             self._read_tsv(os.path.join(data_dir, "test.txt")), "test")
 
     def get_labels(self):
-        return ["O", "B-LOCATION", "I-LOCATION", "B-TRIGGER", "I-TRIGGER",
-                "B-MODAL", "I-MODAL", "B-ACTION", "I-ACTION", "B-CONTENT", "I-CONTENT", "[CLS]", "[SEP]"]
+        return lab_list
 
     def _create_examples(self, lines, set_type):
         examples = []
@@ -363,28 +329,40 @@ b1 = 0.9
 b2 = 0.999
 import itertools
 
-def loopxlnethyperparam(output_dir,num_train_epochs,use_cuda):
-    weightdecay         = [0.1, 0.01, 0.001, 0.0001]
-    learningrate        = [2e-5, 2.2e-5, 2.4e-5, 2.6e-5, 2.8e-5, 3e-5]
-    warmupproportion    = [0.1]
-    trainbatchsize      = [32, 30, 28, 26, 24, 22, 20, 18, 16]
-    hyperparam          = [weightdecay, learningrate, warmupproportion, trainbatchsize]
-    i                   = 0
 
-    list1_permutations = list(itertools.product(*hyperparam))
+def loopxlnethyperparam(output_dir, num_train_epochs, use_cuda):
+    weightdecay = [0.1, 0.01, 0.001, 0.0001]
+    learningrate = [2e-5, 2.2e-5, 2.4e-5, 2.6e-5, 2.8e-5, 3e-5]
+    warmupproportion = [0.1]
+    trainbatchsize = [32, 30, 28, 26, 24, 22, 20, 18, 16]
+    hyperparam = [weightdecay, learningrate, warmupproportion, trainbatchsize]
+    k = 0
 
-    for listtool in list1_permutations:
-        i+= 1
+    list_permutations = list(itertools.product(*hyperparam))
+    shutil.copyfile(r'train.txt', r'train_temp.txt')
+    shutil.copyfile(r'valid.txt', r'valid_temp.txt')
+
+    for i in labelremove:
+        changeToOther(i, "train_temp.txt")
+        changeToOther(i, "valid_temp.txt")
+        lab_list.remove("I-" + i)
+        lab_list.remove("B-" + i)
+    for listtool in list_permutations:
+        k += 1
         weight = listtool[0]
         learning = listtool[1]
         warm = listtool[2]
         trainbs = listtool[3]
 
-        trainxlnet(output_dir, trainbs, True, num_train_epochs, use_cuda, True, i, learning, weight, warm)
+        trainxlnet(output_dir, trainbs, True, num_train_epochs, use_cuda, True, k, learning, weight, warm)
 
-    compareauto(list1_permutations, output_dir)
+    compareauto(list_permutations, output_dir)
 
-def compareauto(list_permutations,filename):
+    os.remove("train_temp.txt")
+    os.remove("valid_temp.txt")
+
+
+def compareauto(list_permutations, filename):
     results = {}
     precision_loc = [0, 0]
     recall_loc = [0, 0]
@@ -409,10 +387,9 @@ def compareauto(list_permutations,filename):
                             learningrate = list_permutations[i][1]
                             trainbatchsize = list_permutations[i][3]
 
-
                             grid_search[i] = [weightdecay, learningrate, trainbatchsize, f1score_loc[1]]
                         if listword[0] == "weighted":
-                            precision_wght, recall_wght, f1score_wght\
+                            precision_wght, recall_wght, f1score_wght \
                                 = get_best_grid_scores(precision_wght, recall_wght, f1score_wght, listword[1:], i)
                             results['weighted'] = [precision_wght, recall_wght, f1score_wght]
 
@@ -422,7 +399,7 @@ def compareauto(list_permutations,filename):
         print("   recall n " + str(results[result][1][0]) + " - " + str(results[result][1][1]))
         print("   f1score n " + str(results[result][2][0]) + " - " + str(results[result][2][1]))
 
-    #generate_grid_search_results_print(grid_search)
+    # generate_grid_search_results_print(grid_search)
 
 
 def get_best_grid_scores(precision, recall, f1score, listword, i):
@@ -437,7 +414,8 @@ def get_best_grid_scores(precision, recall, f1score, listword, i):
         f1score[0] = i
 
     return precision, recall, f1score
-                  
+
+
 def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer):
     """Loads a data file into a list of `InputBatch`s."""
 
@@ -470,21 +448,11 @@ def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer
         ntokens = []
         segment_ids = []
         label_ids = []
-        ntokens.append("[CLS]")
-        segment_ids.append(0)
-        valid.insert(0, 1)
-        label_mask.insert(0, 1)
-        label_ids.append(label_map["[CLS]"])
         for i, token in enumerate(tokens):
             ntokens.append(token)
             segment_ids.append(0)
             if len(labels) > i:
                 label_ids.append(label_map[labels[i]])
-        ntokens.append("[SEP]")
-        segment_ids.append(0)
-        valid.append(1)
-        label_mask.append(1)
-        label_ids.append(label_map["[SEP]"])
         input_ids = tokenizer.convert_tokens_to_ids(ntokens)
         input_mask = [1] * len(input_ids)
         label_mask = [1] * len(label_ids)
@@ -530,7 +498,7 @@ def pip_aggregation(model_name, new_model_name):
     model_path = os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + model_name
     new_model_path = os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + new_model_name
     mode = AutoModelForTokenClassification.from_pretrained(model_path)
-    tokenize =XLNetTokenizer.from_pretrained(model_path)
+    tokenize = XLNetTokenizer.from_pretrained(model_path)
     nlp_ner = pipeline(
         "ner",
         # # grouped_entities=True,
@@ -552,9 +520,9 @@ def prediction(t, model_name):
         tokenizer=tokenize
     )
     label_list = ["O", "B-LOCATION", "I-LOCATION", "B-TRIGGER", "I-TRIGGER",
-                  "B-MODAL", "I-MODAL", "B-ACTION", "I-ACTION", "B-CONTENT", "I-CONTENT", "[CLS]", "[SEP]"]
+                  "B-MODAL", "I-MODAL", "B-ACTION", "I-ACTION", "B-CONTENT", "I-CONTENT"]
 
-    #label_list = ["B-LOCATION", "I-LOCATION", "B-TRIGGER", "I-TRIGGER",
+    # label_list = ["B-LOCATION", "I-LOCATION", "B-TRIGGER", "I-TRIGGER",
     #              "B-MODAL", "I-MODAL", "B-ACTION", "I-ACTION", "B-CONTENT", "I-CONTENT"]
     print(nlp_ner(t))
     prediction = []
@@ -573,7 +541,7 @@ def prediction(t, model_name):
         if word == "'":
             label_name = "I-CONTENT"
 
-        if label_name in ("O", "[CLS]", "[SEP]"):
+        if label_name in ("O"):
             continue
 
         if label_name[2:] in dicINT:
@@ -592,17 +560,14 @@ def prediction(t, model_name):
 
         initial = False
 
-
     prediction.append(dicINT)
 
     return prediction
 
 
-
-
-
 def trainxlnet(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda, do_eval, indexEval,
-              learning_rate, weight_decay, warmup_proportion):
+               learning_rate, weight_decay, warmup_proportion):
+
     processors = {"ner": NerProcessor}
 
     n_gpu = torch.cuda.device_count()
@@ -619,7 +584,7 @@ def trainxlnet(output_dir, train_batch_size, do_train, num_train_epochs, use_cud
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-    output_dir=output_dir+str(indexEval)
+    output_dir = output_dir + str(indexEval)
     if os.path.exists(output_dir) and os.listdir(output_dir) and do_train:
         raise ValueError("Output directory ({}) already exists and is not empty.".format(output_dir))
     if not os.path.exists(output_dir):
@@ -631,7 +596,7 @@ def trainxlnet(output_dir, train_batch_size, do_train, num_train_epochs, use_cud
     label_list = processor.get_labels()
     num_labels = len(label_list) + 1
 
-    tokenizer = XLNetTokenizer.from_pretrained(xlnet_model, do_lower_case=do_lower_case,return_tensors="pt")
+    tokenizer = XLNetTokenizer.from_pretrained(xlnet_model, do_lower_case=do_lower_case, return_tensors="pt")
 
     train_examples = None
     num_train_optimization_steps = 0.0
@@ -703,17 +668,17 @@ def trainxlnet(output_dir, train_batch_size, do_train, num_train_epochs, use_cud
 
         model.train()
         train_losses = []
-        
-        
+
         for _ in trange(int(num_train_epochs), desc="Epoch"):
             tr_loss = 0
             nb_tr_examples, nb_tr_steps = 0, 0
             for step, batch in enumerate(tqdm(train_dataloader, desc="Iteration")):
                 batch = tuple(t.to(device) for t in batch)
-                input_ids, input_mask, label_ids,  l_mask = batch
-                output = model(input_ids=input_ids,token_type_ids=None, attention_mask=input_mask, attention_mask_label= l_mask, labels=label_ids)
-                loss=output["loss"]
-                logits=output["logits"]
+                input_ids, input_mask, label_ids, l_mask = batch
+                output = model(input_ids=input_ids, token_type_ids=None, attention_mask=input_mask,
+                               attention_mask_label=l_mask, labels=label_ids)
+                loss = output["loss"]
+                logits = output["logits"]
                 tr_loss += loss.item()
                 nb_tr_examples += input_ids.size(0)
                 nb_tr_steps += 1
@@ -759,7 +724,6 @@ def trainxlnet(output_dir, train_batch_size, do_train, num_train_epochs, use_cud
     if do_eval and (local_rank == -1 or torch.distributed.get_rank() == 0):
 
         eval_examples = processor.get_dev_examples("")
-        eval_examples = processor.get_dev_examples("")
         eval_features = convert_examples_to_features(eval_examples, label_list, max_seq_length, tokenizer)
         logger.info("***** Running evaluation *****")
         logger.info("  Num examples = %d", len(eval_examples))
@@ -768,7 +732,7 @@ def trainxlnet(output_dir, train_batch_size, do_train, num_train_epochs, use_cud
         all_input_mask = torch.tensor([f.input_mask for f in eval_features], dtype=torch.long)
         all_label_ids = torch.tensor([f.label_id for f in eval_features], dtype=torch.long)
         all_lmask_ids = torch.tensor([f.label_mask for f in eval_features], dtype=torch.long)
-        eval_data = TensorDataset(all_input_ids, all_input_mask, all_label_ids, 
+        eval_data = TensorDataset(all_input_ids, all_input_mask, all_label_ids,
                                   all_lmask_ids)
 
         # Run prediction for full data
@@ -779,19 +743,22 @@ def trainxlnet(output_dir, train_batch_size, do_train, num_train_epochs, use_cud
         y_pred = []
         label_map = {i: label for i, label in enumerate(label_list, 1)}
         for input_ids, input_mask, label_ids, l_mask in tqdm(eval_dataloader,
-                                                                                     desc="Evaluating"):
+                                                             desc="Evaluating"):
             input_ids = input_ids.to(device)
             input_mask = input_mask.to(device)
             label_ids = label_ids.to(device)
             l_mask = l_mask.to(device)
 
             with torch.no_grad():
-                logits = model(input_ids, input_mask,attention_mask_label=l_mask)
-
-            logits = torch.argmax(F.log_softmax(logits, dim=2), dim=2)
-            logits = logits.detach().cpu().numpy()
+                outputs = model(input_ids, input_mask, attention_mask_label=l_mask)
+            logits = outputs.logits
+            softmax = F.softmax(logits, dim=2)
+            index = torch.argmax(softmax, dim=2)
+            index = index.detach().cpu().numpy()
+            # print(logits[1])
             label_ids = label_ids.to('cpu').numpy()
             input_mask = input_mask.to('cpu').numpy()
+            # print(label_map)
 
             for i, label in enumerate(label_ids):
                 temp_1 = []
@@ -799,23 +766,32 @@ def trainxlnet(output_dir, train_batch_size, do_train, num_train_epochs, use_cud
                 for j, m in enumerate(label):
                     if j == 0:
                         continue
+
                     elif label_ids[i][j] == len(label_map):
                         y_true.append(temp_1)
                         y_pred.append(temp_2)
                         break
                     else:
-                        temp_1.append(label_map[label_ids[i][j]])
-                        temp_2.append(label_map[logits[i][j]])
-                        
+                        try:
+                            temp_1.append(label_map[label_ids[i][j]])
+                        except:
+                            print(i)
+                            print(j)
+                            print(label_ids[i][j])
+
+                        lab_pred = index[i][j]
+                        if lab_pred == 0:
+                            lab_pred = 1
+                        temp_2.append(label_map[lab_pred])
         print(y_pred)
         report = classification_report(y_true, y_pred, digits=4)
         logger.info("\n%s", report)
         output_eval_file = os.path.join(output_dir, "eval_results.txt")
         with open(output_eval_file, "w") as writer:
             logger.info("***** Eval results *****")
-            logger.info("weight_decay:"+str(weight_decay))
-            logger.info("learning_rate:"+str(learning_rate))
-            logger.info("warmup:"+str(warmup_proportion))
-            logger.info("train batch size:"+str(train_batch_size))
+            logger.info("weight_decay:" + str(weight_decay))
+            logger.info("learning_rate:" + str(learning_rate))
+            logger.info("warmup:" + str(warmup_proportion))
+            logger.info("train batch size:" + str(train_batch_size))
             logger.info("\n%s", report)
             writer.write(report)
