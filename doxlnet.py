@@ -171,6 +171,7 @@ def trainxlnetModel(jsonfile, output_dir, nIter, use_cuda):
     learning_rate       = 2e-05
     weight_decay        = 0.001
     warmup_proportion   = 0.1
+
     train_batch_size    = 26
 
     # INITIAL
@@ -381,34 +382,61 @@ def loopxlnethyperparam(output_dir,num_train_epochs,use_cuda):
 
         trainxlnet(output_dir, trainbs, True, num_train_epochs, use_cuda, True, i, learning, weight, warm)
 
-    compareauto(len(list1_permutations), output_dir)
+    compareauto(list1_permutations, output_dir)
 
-def compareauto(sizecombine,filename):
-    precision=[0,0]
-    recall=[0,0]
-    f1score=[0,0]
-    for i in range(1,sizecombine+1):
-       with open(filename+str(1)+"/eval_results.txt") as file:
+def compareauto(list_permutations,filename):
+    results = {}
+    precision_loc = [0, 0]
+    recall_loc = [0, 0]
+    f1score_loc = [0, 0]
+    precision_wght = [0, 0]
+    recall_wght = [0, 0]
+    f1score_wght = [0, 0]
+    grid_search = {}
+
+    for i in range(1, len(list_permutations) + 1):
+        with open(filename + str(i) + "/eval_results.txt") as file:
             for line in file:
                 line[0].split()
                 for line in file:
-                 # print(line)
-                     listword=line.split()
-                     if len(listword)>0:
-                         # print(listword)
-                         if listword[0]=="micro":
-                            if precision[1]<float(listword[2]):
-                                  precision[1]=float(listword[2])
-                                  precision[0]=i
-                            if recall[1]<float(listword[3]):
-                                  recall[1]=float(listword[3])
-                                  recall[0]=i
-                            if f1score[1]<float(listword[4]):
-                                  f1score[1]=float(listword[4])
-                                  f1score[0]=i
-    print("precision n "+str(precision[0]))
-    print("recall n "+str(recall[0]))
-    print("f1score n " +str(f1score[0]))
+                    listword = line.split()
+                    if len(listword) > 0:
+                        if listword[0] == "LOCATION":
+                            precision_loc, recall_loc, f1score_loc \
+                                = get_best_grid_scores(precision_loc, recall_loc, f1score_loc, listword, i)
+                            results['LOCATION'] = [precision_loc, recall_loc, f1score_loc]
+                            weightdecay = list_permutations[i][0]
+                            learningrate = list_permutations[i][1]
+                            trainbatchsize = list_permutations[i][3]
+
+
+                            grid_search[i] = [weightdecay, learningrate, trainbatchsize, f1score_loc[1]]
+                        if listword[0] == "weighted":
+                            precision_wght, recall_wght, f1score_wght\
+                                = get_best_grid_scores(precision_wght, recall_wght, f1score_wght, listword[1:], i)
+                            results['weighted'] = [precision_wght, recall_wght, f1score_wght]
+
+    for result in results:
+        print(result)
+        print("   precision n " + str(results[result][0][0]) + " - " + str(results[result][0][1]))
+        print("   recall n " + str(results[result][1][0]) + " - " + str(results[result][1][1]))
+        print("   f1score n " + str(results[result][2][0]) + " - " + str(results[result][2][1]))
+
+    #generate_grid_search_results_print(grid_search)
+
+
+def get_best_grid_scores(precision, recall, f1score, listword, i):
+    if precision[1] < float(listword[1]):
+        precision[1] = float(listword[1])
+        precision[0] = i
+    if recall[1] < float(listword[2]):
+        recall[1] = float(listword[2])
+        recall[0] = i
+    if f1score[1] < float(listword[3]):
+        f1score[1] = float(listword[3])
+        f1score[0] = i
+
+    return precision, recall, f1score
                   
 def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer):
     """Loads a data file into a list of `InputBatch`s."""

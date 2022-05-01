@@ -7,15 +7,15 @@ from dobilstm import trainBiLSTMModel
 from datetime import datetime
 from dobert import trainBERTModel, evaluation, pip_aggregation, Ner, prediction,trainBERTGrid
 from doroberta import trainROBERTAModel, evaluationRoberta, pip_aggregationRoberta, predictionRoberta,trainROBERTAGrid
-from doxlnet import trainxlnetModel
+from doxlnet import trainxlnetModel, trainxlnetGrid
 
 def train_model(model, output_dir, useCuda, spacy_model_type = "1", grid_type = "1"):
     LABEL = ['LOCATION', 'CONTENT', 'TRIGGER', 'MODAL', 'ACTION']
 
     ROOT_DIR = os.path.dirname(os.path.abspath('data.json'))
-    path_train_data_bert = os.path.join(ROOT_DIR, 'final1.json')
-    path_train_data = os.path.join(ROOT_DIR, 'data_train_full.json')
-    path_valid_data = os.path.join(ROOT_DIR, 'data_valid_full.json')
+    path_train_data_bert = os.path.join(ROOT_DIR, 'train.json')
+    path_train_data = os.path.join(ROOT_DIR, 'train_temp_test.spacy')
+    path_valid_data = os.path.join(ROOT_DIR, 'valid_temp_test.spacy')
 
     dropout = 1e-5
     nIter   = 3
@@ -38,6 +38,8 @@ def train_model(model, output_dir, useCuda, spacy_model_type = "1", grid_type = 
             trainBERTGrid(path_train_data_bert, output_dir, nIter, useCuda)
         elif grid_type=="2":
             trainROBERTAGrid(path_train_data_bert, output_dir, nIter, useCuda)
+        elif grid_type=="3":
+            trainxlnetGrid(path_train_data_bert, output_dir, nIter, useCuda)
         exit()
     elif model==str(5):
         trainROBERTAModel(path_train_data_bert, output_dir, nIter, useCuda)
@@ -78,9 +80,10 @@ def test_model_dataset(model_name):
             evaluationRoberta(model_name, useCuda)
     else:
         #model_path = os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + model_name
-        LABEL = ['LOCATION', 'CONTENT', 'TRIGGER', 'MODAL', 'ACTION']
+        #LABEL = ['LOCATION', 'CONTENT', 'TRIGGER', 'MODAL', 'ACTION']
+        LABEL = ['LOCATION', 'TRIGGER', 'MODAL', 'ACTION']
         ROOT_DIR = os.path.dirname(os.path.abspath('data.json'))
-        path_test_data = os.path.join(ROOT_DIR, 'data_test_full.json')
+        path_test_data = os.path.join(ROOT_DIR, 'valid_temp_test.spacy')
         results = evaluateSpacy(model_name, path_test_data, LABEL)
         print("Entity\t\tPrecision\tRecall\tF-score")
         for result in results['ents_per_type']:
