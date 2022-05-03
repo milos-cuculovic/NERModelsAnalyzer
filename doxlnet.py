@@ -1,3 +1,11 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Tue May  3 15:33:04 2022
+
+@author: chams
+"""
+
 import os
 from torch import nn
 import json
@@ -288,12 +296,12 @@ class NerProcessor(DataProcessor):
     def get_train_examples(self, data_dir):
         """See base class."""
         return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "train_temp.txt")), "train")
+            self._read_tsv(os.path.join(data_dir, "train.txt")), "train")
 
     def get_dev_examples(self, data_dir):
         """See base class."""
         return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "valid_temp.txt")), "dev")
+            self._read_tsv(os.path.join(data_dir, "valid.txt")), "dev")
 
     def get_test_examples(self, data_dir):
         """See base class."""
@@ -671,14 +679,35 @@ def trainxlnet(output_dir, train_batch_size, do_train, num_train_epochs, use_cud
 
         for _ in trange(int(num_train_epochs), desc="Epoch"):
             tr_loss = 0
+            best_losses=1
             nb_tr_examples, nb_tr_steps = 0, 0
+            """          for step, batch in enumerate(tqdm(train_dataloader, desc="Iteration")):
+                batch = tuple(t.to(device) for t in batch)
+
+                input_ids, input_mask, label_ids, l_mask = batch
+                loss = model(input_ids=input_ids, attention_mask=input_mask,
+                               attention_mask_label=l_mask, labels=label_ids)
+                loss = loss["loss"]
+                loss.backward()
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
+                optimizer.step()
+                scheduler.step()
+                optimizer.zero_grad() # added
+                model.zero_grad()
+                global_step+=1
+                tr_loss += loss.item()"""
             for step, batch in enumerate(tqdm(train_dataloader, desc="Iteration")):
                 batch = tuple(t.to(device) for t in batch)
                 input_ids, input_mask, label_ids, l_mask = batch
-                output = model(input_ids=input_ids, token_type_ids=None, attention_mask=input_mask,
+                loss = model(input_ids=input_ids, attention_mask=input_mask,
                                attention_mask_label=l_mask, labels=label_ids)
-                loss = output["loss"]
-                logits = output["logits"]
+                loss = loss["loss"]                
+                loss = loss.mean()  # mean() to average on multi-gpu.
+                if gradient_accumulation_steps > 1:
+                    loss = loss / gradient_accumulation_steps
+
+                loss.backward()
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
                 tr_loss += loss.item()
                 nb_tr_examples += input_ids.size(0)
                 nb_tr_steps += 1
@@ -687,8 +716,11 @@ def trainxlnet(output_dir, train_batch_size, do_train, num_train_epochs, use_cud
                     scheduler.step()  # Update learning rate schedule
                     model.zero_grad()
                     global_step += 1
-
             tr_losses = tr_loss / len(train_dataloader)
+            if tr_losses < best_losses:
+                best_losses = tr_losses
+                model_to_save = model.module if hasattr(model, 'module') else model
+
             if tr_losses < 0.05:
                 break
             train_losses.append(tr_losses)
@@ -767,23 +799,17 @@ def trainxlnet(output_dir, train_batch_size, do_train, num_train_epochs, use_cud
                     if j == 0:
                         continue
 
-                    elif label_ids[i][j] == len(label_map):
+                    elif label_ids[i][j] == 0:
                         y_true.append(temp_1)
                         y_pred.append(temp_2)
                         break
                     else:
-                        try:
-                            temp_1.append(label_map[label_ids[i][j]])
-                        except:
-                            print(i)
-                            print(j)
-                            print(label_ids[i][j])
+                        temp_1.append(label_map[label_ids[i][j]])
 
                         lab_pred = index[i][j]
                         if lab_pred == 0:
                             lab_pred = 1
                         temp_2.append(label_map[lab_pred])
-        print(y_pred)
         report = classification_report(y_true, y_pred, digits=4)
         logger.info("\n%s", report)
         output_eval_file = os.path.join(output_dir, "eval_results.txt")
