@@ -88,6 +88,7 @@ class BertNer(BertForTokenClassification):
         batch_size,max_len,feat_dim = sequence_output.shape
         valid_output = torch.zeros(batch_size,max_len,feat_dim,dtype=torch.float32,device='cuda' if torch.cuda.is_available() else 'cpu')
         for i in range(batch_size):
+            self.ber
             jj = -1
             for j in range(max_len):
                     if valid_ids[i][j].item() == 1:
@@ -427,7 +428,7 @@ def loopBerthyperparam(output_dir,num_train_epochs,use_cuda):
         warm = listtool[2]
         trainbs = listtool[3]
 
-        #trainBert(output_dir, trainbs, True, num_train_epochs, use_cuda, True, k, learning, weight, warm)
+        trainBert(output_dir, trainbs, True, num_train_epochs, use_cuda, True, k, learning, weight, warm)
 
     os.remove("train_temp.txt")
     os.remove("valid_temp.txt")
@@ -443,7 +444,7 @@ def compareauto(list_permutations,filename):
     f1score_wght = [0, 0]
     grid_search = {}
 
-    for i in range(1, len(list_permutations) + 1):
+    for i in range(1, len(list_permutations)):
         with open(filename + str(i) + "/eval_results.txt") as file:
             for line in file:
                 line[0].split()
@@ -470,6 +471,8 @@ def compareauto(list_permutations,filename):
         print("   precision n " + str(results[result][0][0]) + " - " + str(results[result][0][1]))
         print("   recall n " + str(results[result][1][0]) + " - " + str(results[result][1][1]))
         print("   f1score n " + str(results[result][2][0]) + " - " + str(results[result][2][1]))
+        for grid in grid_search:
+            print(grid_search[grid])
 
     #generate_grid_search_results_print(grid_search)
 
