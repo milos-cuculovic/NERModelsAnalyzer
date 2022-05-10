@@ -108,6 +108,10 @@ if __name__ == '__main__':
     useCuda = False
     spacy_model_type = "1"
     action_type = input("Action type: (1. Train; 2. Dataset Test; 3. Manual Test; 4.Grid search): ")
+
+    if action_type == "":
+        action_type = "3"
+
     if action_type == str(1):
         model = input("Model (1. spaCy; 2. Bi-LSTM; 3. BERT; 4. BERT-pip_aggregation, 5.Roberta, 6: xlnet): ")
         modelFile = input("Enter the Model name to save: ")
@@ -146,18 +150,24 @@ if __name__ == '__main__':
         else:
             if action_type == str(3):
                 model = input("Model (1. spaCy; 2.BERT; 3.RoBerta): ")
+
+                if model == "":
+                    model = "2"
+
                 if model == "1":
                     model_name = input("Model name to test: ")
                     model_path = os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + model_name
                     test_model_manually(model_path)
                 elif model == "2":
                     model_name = input("Model name to test: ")
+
+                    if model_name == "":
+                        model_name = "scibert_grid_45_29.04.2022"
+
                     text = input("Enter your testing text: ")
                     print(prediction(text, model_name))
                     model = Ner('trained_models/' + model_name+'/')
-                    # output = model.predict(text)
-                    # for prediction in output:
-                    #     print(prediction)
+
                 elif model =="3":
                     model_name=input("Model name to test: ")
                     text = input("Enter your testing text: ")

@@ -26,6 +26,7 @@ import torch.optim as optim
 from torch.nn.parallel import DistributedDataParallel as DDP
 from bertconf import removEsc, sentenceMean, json_conll, trigConll, crossval, changeToOther
 import shutil
+from grid_search_results_print import generate_grid_search_results_print
 
 trigger= ['why', 'on the contrary','what','however','either','while','rather','instead of', 'when','than',
          'in order to','therefore','not only', 'afterwards','once again','or','in order to','in particular',
@@ -161,6 +162,9 @@ def trainxlnetModel(jsonfile, output_dir, nIter, use_cuda):
         device = "cuda"
     else:
         device = "cpu"
+
+    shutil.copyfile(r'train.txt', r'train_temp.txt')
+    shutil.copyfile(r'valid.txt', r'valid_temp.txt')
 
     trainxlnet(output_dir, train_batch_size, True, int(nIter), use_cuda, True, 1, learning_rate,
                weight_decay, warmup_proportion)
@@ -358,9 +362,6 @@ def loopxlnethyperparam(output_dir, num_train_epochs, use_cuda):
 
     compareauto(list_permutations, output_dir)
 
-    os.remove("train_temp.txt")
-    os.remove("valid_temp.txt")
-
 
 def compareauto(list_permutations, filename):
     results = {}
@@ -383,9 +384,6 @@ def compareauto(list_permutations, filename):
                             precision_loc, recall_loc, f1score_loc \
                                 = get_best_grid_scores(precision_loc, recall_loc, f1score_loc, listword, i)
                             results['LOCATION'] = [precision_loc, recall_loc, f1score_loc]
-                            weightdecay = list_permutations[i][0]
-                            learningrate = list_permutations[i][1]
-                            trainbatchsize = list_permutations[i][3]
 
                             grid_search[i] = [weightdecay, learningrate, trainbatchsize, f1score_loc[1]]
                         if listword[0] == "weighted":
@@ -393,13 +391,19 @@ def compareauto(list_permutations, filename):
                                 = get_best_grid_scores(precision_wght, recall_wght, f1score_wght, listword[1:], i)
                             results['weighted'] = [precision_wght, recall_wght, f1score_wght]
 
+        weightdecay = list_permutations[results['LOCATION'][0][0]][0]
+        learningrate = list_permutations[results['LOCATION'][0][0]][1]
+        trainbatchsize = list_permutations[results['LOCATION'][0][0]][3]
+        grid_search[list_permutations[results['LOCATION'][0][0]]] = \
+            [weightdecay, learningrate, trainbatchsize, results['LOCATION'][1][1]]
+
     for result in results:
         print(result)
         print("   precision n " + str(results[result][0][0]) + " - " + str(results[result][0][1]))
         print("   recall n " + str(results[result][1][0]) + " - " + str(results[result][1][1]))
         print("   f1score n " + str(results[result][2][0]) + " - " + str(results[result][2][1]))
 
-    # generate_grid_search_results_print(grid_search)
+    generate_grid_search_results_print(grid_search)
 
 
 def get_best_grid_scores(precision, recall, f1score, listword, i):
@@ -742,8 +746,7 @@ def trainxlnet(output_dir, train_batch_size, do_train, num_train_epochs, use_cud
         y_true = []
         y_pred = []
         label_map = {i: label for i, label in enumerate(label_list, 1)}
-        for input_ids, input_mask, label_ids, l_mask in tqdm(eval_dataloader,
-                                                             desc="Evaluating"):
+        for input_ids, input_mask, label_ids, l_mask in tqdm(eval_dataloader, desc="Evaluating"):
             input_ids = input_ids.to(device)
             input_mask = input_mask.to(device)
             label_ids = label_ids.to(device)
@@ -755,10 +758,8 @@ def trainxlnet(output_dir, train_batch_size, do_train, num_train_epochs, use_cud
             softmax = F.softmax(logits, dim=2)
             index = torch.argmax(softmax, dim=2)
             index = index.detach().cpu().numpy()
-            # print(logits[1])
             label_ids = label_ids.to('cpu').numpy()
             input_mask = input_mask.to('cpu').numpy()
-            # print(label_map)
 
             for i, label in enumerate(label_ids):
                 temp_1 = []
