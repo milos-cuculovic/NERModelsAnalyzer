@@ -423,7 +423,7 @@ def loopBerthyperparam(output_dir,num_train_epochs,use_cuda):
         warm = listtool[2]
         trainbs = listtool[3]
 
-        #trainBert(output_dir, trainbs, True, num_train_epochs, use_cuda, True, k, learning, weight, warm)
+        trainBert(output_dir, trainbs, True, num_train_epochs, use_cuda, True, k, learning, weight, warm)
 
     compareauto(list_permutations, output_dir)
 
