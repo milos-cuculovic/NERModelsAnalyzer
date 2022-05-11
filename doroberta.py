@@ -311,10 +311,10 @@ def loopRobertahyperparam(output_dir,num_train_epochs,use_cuda):
 
         trainRoberta(output_dir, trainbs, True, num_train_epochs, use_cuda, True, k, learning, weight, warm)
 
-    compareauto(list_permutations, output_dir)
+    compareauto(list_permutations,output_dir)
 
 
-def compareauto(list_permutations, filename):
+def compareauto(list_permutations,output_dir):
     results = {}
     precision_loc = [0, 0]
     recall_loc = [0, 0]
@@ -325,7 +325,7 @@ def compareauto(list_permutations, filename):
     grid_search = {}
 
     for i in range(1, len(list_permutations) + 1):
-        with open(filename + str(i) + "/eval_results.txt") as file:
+        with open(output_dir + str(i) + "/eval_results.txt") as file:
             for line in file:
                 line[0].split()
                 for line in file:
@@ -354,7 +354,7 @@ def compareauto(list_permutations, filename):
         print("   recall n " + str(results[result][1][0]) + " - " + str(results[result][1][1]))
         print("   f1score n " + str(results[result][2][0]) + " - " + str(results[result][2][1]))
 
-    generate_grid_search_results_print(grid_search)
+    generate_grid_search_results_print(grid_search, output_dir + "1", roberta_model)
 
 
 def get_best_grid_scores(precision, recall, f1score, listword, i):
