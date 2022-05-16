@@ -88,6 +88,7 @@ class BertNer(BertForTokenClassification):
         batch_size,max_len,feat_dim = sequence_output.shape
         valid_output = torch.zeros(batch_size,max_len,feat_dim,dtype=torch.float32,device='cuda' if torch.cuda.is_available() else 'cpu')
         for i in range(batch_size):
+            self.ber
             jj = -1
             for j in range(max_len):
                     if valid_ids[i][j].item() == 1:
@@ -220,16 +221,13 @@ def trainBERTModel(jsonfile, output_dir, nIter, use_cuda):
     shutil.copyfile(r'valid.txt', r'valid_temp.txt')
        
     for i in labelremove:
-            print("here")
             changeToOther(i,"train_temp.txt")
             changeToOther(i,"valid_temp.txt")
             lab_list.remove("I-"+i)
             lab_list.remove("B-"+i)
            
-    trainBert(output_dir, train_batch_size, True, int(nIter), use_cuda, True, 1, learning_rate,
-                weight_decay, warmup_proportion)
-    os.remove("train_temp.txt")
-    os.remove("valid_temp.txt")
+    trainBert(output_dir, train_batch_size, True, int(nIter), use_cuda,
+              True, 1, learning_rate, weight_decay, warmup_proportion)
     
 def trainBERTGrid(jsonfile, output_dir, nIter, use_cuda):
     # # INITIAL
@@ -268,8 +266,6 @@ def evaluation(output_dir, use_cuda):
         lab_list.remove("I-"+i)
         lab_list.remove("B-"+i)
     trainBert(output_dir, 32, False, 1, use_cuda, True,"",2e-5,0.01,0.1)
-    os.remove("train_temp.txt")
-    os.remove("valid_temp.txt")
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt='%m/%d/%Y %H:%M:%S',
@@ -408,6 +404,11 @@ def loopBerthyperparam(output_dir,num_train_epochs,use_cuda):
     learningrate        = [2e-5, 2.2e-5, 2.4e-5, 2.6e-5, 2.8e-5, 3e-5]
     warmupproportion    = [0.1]
     trainbatchsize      = [32, 30, 28, 26, 24, 22, 20, 18, 16]
+    #weightdecay = [0.1, 0.01, 0.001, 0.0001]
+    #learningrate = [1e-3, 5e-4, 1e-4, 5e-5, 1e-5]
+    #warmupproportion = [0.1]
+    #trainbatchsize = [16, 32, 64, 128, 256]
+
     hyperparam          = [weightdecay, learningrate, warmupproportion, trainbatchsize]
     k                   = 0
 
@@ -427,13 +428,11 @@ def loopBerthyperparam(output_dir,num_train_epochs,use_cuda):
         warm = listtool[2]
         trainbs = listtool[3]
 
-        #trainBert(output_dir, trainbs, True, num_train_epochs, use_cuda, True, k, learning, weight, warm)
+        trainBert(output_dir, trainbs, True, num_train_epochs, use_cuda, True, k, learning, weight, warm)
 
-    os.remove("train_temp.txt")
-    os.remove("valid_temp.txt")
-    compareauto(list_permutations, output_dir)
+    compareauto(list_permutations,output_dir)
 
-def compareauto(list_permutations,filename):
+def compareauto(list_permutations,output_dir):
     results = {}
     precision_loc = [0, 0]
     recall_loc = [0, 0]
@@ -443,8 +442,8 @@ def compareauto(list_permutations,filename):
     f1score_wght = [0, 0]
     grid_search = {}
 
-    for i in range(1, len(list_permutations) + 1):
-        with open(filename + str(i) + "/eval_results.txt") as file:
+    for i in range(0, len(list_permutations)):
+        with open(output_dir + "/" + str(i+1) + "/eval_results.txt") as file:
             for line in file:
                 line[0].split()
                 for line in file:
@@ -457,9 +456,8 @@ def compareauto(list_permutations,filename):
                             weightdecay = list_permutations[i][0]
                             learningrate = list_permutations[i][1]
                             trainbatchsize = list_permutations[i][3]
+                            grid_search[i] = [weightdecay, learningrate, trainbatchsize, listword[1]]
 
-
-                            grid_search[i] = [weightdecay, learningrate, trainbatchsize, f1score_loc[1]]
                         if listword[0] == "weighted":
                             precision_wght, recall_wght, f1score_wght\
                                 = get_best_grid_scores(precision_wght, recall_wght, f1score_wght, listword[1:], i)
@@ -471,7 +469,7 @@ def compareauto(list_permutations,filename):
         print("   recall n " + str(results[result][1][0]) + " - " + str(results[result][1][1]))
         print("   f1score n " + str(results[result][2][0]) + " - " + str(results[result][2][1]))
 
-    #generate_grid_search_results_print(grid_search)
+    generate_grid_search_results_print(grid_search, output_dir + "1", bert_model)
 
 
 def get_best_grid_scores(precision, recall, f1score, listword, i):
@@ -590,7 +588,12 @@ def pip_aggregation(model_name, new_model_name):
     nlp_ner.save_pretrained(new_model_path)
 
 
-def prediction(t, model_name):
+def prediction(text, model_name):
+
+    if text == "":
+        text = "The authors should correct the typos in the conclusion, those are visible within the lines: 22-28."
+
+    punctuation = ['"',"-","(",")",":"]
     model_path = os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + model_name
     mode = AutoModelForTokenClassification.from_pretrained(model_path)
     tokenize = BertTokenizer.from_pretrained(model_path)
@@ -605,40 +608,48 @@ def prediction(t, model_name):
 
     #label_list = ["B-LOCATION", "I-LOCATION", "B-TRIGGER", "I-TRIGGER",
     #              "B-MODAL", "I-MODAL", "B-ACTION", "I-ACTION", "B-CONTENT", "I-CONTENT"]
-    print(nlp_ner(t))
+    #print(nlp_ner(t))
     prediction = []
     initial = True
     dicINT = {}
-    result = nlp_ner(t)
+    result = nlp_ner(text)
+    previous_valid_label = ""
+    previous_word_is_punctuation = False
+    previous_valid_index = 0
 
     for dic in result:
         label = dic['entity']
-        index = label.find("_") + 1
-        number = label[index:]
+        label_index = label.find("_") + 1
+        number = label[label_index:]
         pos = int(number) - 1
         label_name = label_list[pos]
         word = dic['word']
+        index = dic['index']
 
-
-        if label_name in ("O", "[CLS]", "[SEP]"):
-            continue
-
-        if label_name[2:] in dicINT:
-            if "##" in word:
-                word = word.lstrip('##')
-                dicINT[label_name[2:]] += word
-            elif word == "'" or word == "s":
-                dicINT[label_name[2:]] += word
+        if label_name not in ("O","[CLS]","[SEP]"):
+            if (label_name[2:] == previous_valid_label[2:] and previous_word_is_punctuation is True):
+                if "##" in word:
+                    word = word.lstrip('##')
+                    dicINT["word"] += word
+                elif word == "'" or word == "s":
+                    dicINT["word"] += word
+                elif previous_word_is_punctuation is True:
+                    dicINT["word"] += word
+                else:
+                    dicINT["word"] += " " + word
             else:
-                dicINT[label_name[2:]] += " " + dic['word']
-        else:
-            if initial == False:
-                prediction.append(dicINT)
-                dicINT = {}
-            dicINT[label_name[2:]] = dic['word']
-
-        initial = False
-
+                if initial == False:
+                    prediction.append(dicINT)
+                    dicINT = {}
+                dicINT["word"] = word
+            dicINT["label"] = label_name[2:]
+            dicINT["index"] = index
+            initial = False
+            previous_valid_label = label_name
+            previous_word_is_punctuation = False
+        elif word in punctuation:
+            previous_word_is_punctuation = True
+            dicINT["word"] += word
 
     prediction.append(dicINT)
 
@@ -784,7 +795,7 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
 
             tr_losses = tr_loss / len(train_dataloader)
 
-            if tr_losses < best_losses:
+            if tr_losses < best_losses or 'model_to_save' not in locals():
                 best_losses = tr_losses
                 model_to_save = model.module if hasattr(model, 'module') else model
 

@@ -7,16 +7,19 @@ import json
 import matplotlib.pyplot as plt
 
 from numpy import random
+from spacy.tokens import DocBin
 from spacy.util import minibatch, compounding
 from spacy.scorer import Scorer
 from spacy import displacy
 from spacy.training import Example
 from thinc.api import SGD, RAdam, Adam
 from tqdm.auto import tqdm
+import spacy_conll
+from spacy_conll import init_parser
 
 def convertDoccanoToSpacy(path_csv, LABEL):
     datasets = []
-    csv_file = csv.reader(open(path_csv, "r"), delimiter="	")
+    csv_file = csv.reader(open(path_csv, "r"), delimiter="  ")
     data = {}
 
     for row in csv_file:
@@ -260,9 +263,13 @@ def removeBlankSpaces(it, text):
     return seen
 
 def evaluate(nlp, TEST_DATA):
+
     examples = []
     for text, annotations in TEST_DATA:
-        examples.append(Example.from_dict(nlp.make_doc(text), annotations))
+        try:
+            examples.append(Example.from_dict(nlp.make_doc(text), annotations))
+        except:
+            print("An exception occurred")
 
     #return scorer.score_tokenization(examples)
     return nlp.evaluate(examples)
@@ -291,5 +298,17 @@ def trainSpacyModel(path_train_data, path_valid_data, LABEL, dropout, nIter, spa
 
 def evaluateSpacy(model_name, path_test_data, LABEL):
     nlp = spacy.load(model_name)
-    TESTING_DATA = convertJsonToSpacy(path_test_data, LABEL)
-    return evaluate(nlp, TESTING_DATA)
+    #TESTING_DATA = convertJsonToSpacy(path_test_data, LABEL)
+
+    doc_bin = DocBin().from_disk(path_test_data)
+    TRAINING_DATA = []
+    for doc in doc_bin.get_docs(nlp.vocab):
+        entities = []
+        for ent in doc.ents:
+            entities.append((ent.start_char, ent.end_char, ent.label_))
+
+        spacy_entry = (doc.text, {"entities": entities})
+
+        TRAINING_DATA.append(spacy_entry)
+
+    return evaluate(nlp, TRAINING_DATA)

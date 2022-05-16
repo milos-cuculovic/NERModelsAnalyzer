@@ -26,12 +26,15 @@ from seqeval.metrics import classification_report
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, TensorDataset, SequentialSampler, RandomSampler
 from torch.utils.data.distributed import DistributedSampler
-from bertconf import removEsc, sentenceMean, json_conll, trigConll, crossval,json_jsonbis,tiggerreplacejson
+from bertconf import removEsc, sentenceMean, json_conll, trigConll, crossval,json_jsonbis,tiggerreplacejson, changeToOther
 
 import shutil
-
+from grid_search_results_print import generate_grid_search_results_print
 
 device = 'cpu'
+labelremove=["CONTENT"]
+lab_list=["O", "B-LOCATION", "I-LOCATION", "B-TRIGGER", "I-TRIGGER",
+                "B-MODAL", "I-MODAL", "B-ACTION", "I-ACTION", "B-CONTENT", "I-CONTENT"]
 
 
 def trainROBERTAModel(jsonfile, output_dir, nIter, use_cuda):
@@ -65,6 +68,9 @@ def trainROBERTAModel(jsonfile, output_dir, nIter, use_cuda):
         device = "cuda"
     else:
         device = "cpu"
+
+    shutil.copyfile(r'train.txt', r'train_temp.txt')
+    shutil.copyfile(r'valid.txt', r'valid_temp.txt')
 
     trainRoberta(output_dir, train_batch_size, True, int(nIter), use_cuda, True, 1, learning_rate,
               weight_decay, warmup_proportion)
@@ -185,23 +191,29 @@ class InputFeatures(object):
         self.valid_ids = valid_ids
         self.label_mask = label_mask
 
-
-
 def readfile(filename):
     '''
     read file
     '''
-    data=[]
-    label=['LOCATION', 'CONTENT', 'TRIGGER', 'MODAL', 'ACTION','O']
-    with open(filename, 'r') as f:
-        for jsonObj in f:
-            jsontxt = json.loads(jsonObj)
-            lab=jsontxt["ner_tags"]
-            tupelab=[]
-            for num in lab:
-                tupelab.append(label[num])
-            tup=(jsontxt["tokens"],tupelab)
-            data.append(tup)
+    f = open(filename)
+    data = []
+    sentence = []
+    label = []
+    for line in f:
+        if len(line) == 0 or line.startswith('-DOCSTART') or line[0] == "\n":
+            if len(sentence) > 0:
+                data.append((sentence, label))
+                sentence = []
+                label = []
+            continue
+        splits = line.split(' ')
+        sentence.append(splits[0])
+        label.append(splits[-1][:-1])
+
+    if len(sentence) > 0:
+        data.append((sentence, label))
+        sentence = []
+        label = []
     return data
 
 
@@ -232,15 +244,20 @@ class NerProcessor(DataProcessor):
     def get_train_examples(self, data_dir):
         """See base class."""
         return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "train.json")), "train")
+            self._read_tsv(os.path.join(data_dir, "train_temp.txt")), "train")
 
     def get_dev_examples(self, data_dir):
         """See base class."""
         return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "valid.json")), "dev")
+            self._read_tsv(os.path.join(data_dir, "valid_temp.txt")), "dev")
+
+    def get_test_examples(self, data_dir):
+        """See base class."""
+        return self._create_examples(
+            self._read_tsv(os.path.join(data_dir, "test.txt")), "test")
 
     def get_labels(self):
-        return  ['LOCATION','CONTENT', 'TRIGGER', 'MODAL', 'ACTION','O']
+        return lab_list
 
     def _create_examples(self, lines, set_type):
         examples = []
@@ -269,54 +286,93 @@ b2 = 0.999
 import itertools
 
 def loopRobertahyperparam(output_dir,num_train_epochs,use_cuda):
-    weightdecay         = [0.1, 0.01, 0.001, 0.0001]
-    learningrate        = [1e-3, 5e-4, 1e-4, 5e-5, 1e-5]
-    warmupproportion    = [0.1]
-    trainbatchsize      = [256, 128, 64, 32, 16, 8, 4]
-    hyperparam          = [weightdecay, learningrate, warmupproportion, trainbatchsize]
-    i                   = 0
+    weightdecay = [0.1, 0.01, 0.001, 0.0001]
+    learningrate = [2e-5, 2.2e-5, 2.4e-5, 2.6e-5, 2.8e-5, 3e-5]
+    warmupproportion = [0.1]
+    trainbatchsize = [32, 30, 28, 26, 24, 22, 20, 18, 16]
+    hyperparam = [weightdecay, learningrate, warmupproportion, trainbatchsize]
+    k = 0
 
-    list1_permutations = list(itertools.product(*hyperparam))
+    list_permutations = list(itertools.product(*hyperparam))
+    shutil.copyfile(r'train.txt', r'train_temp.txt')
+    shutil.copyfile(r'valid.txt', r'valid_temp.txt')
 
-    for listtool in list1_permutations:
-        i+= 1
+    for i in labelremove:
+        changeToOther(i, "train_temp.txt")
+        changeToOther(i, "valid_temp.txt")
+        lab_list.remove("I-" + i)
+        lab_list.remove("B-" + i)
+    for listtool in list_permutations:
+        k += 1
         weight = listtool[0]
         learning = listtool[1]
         warm = listtool[2]
         trainbs = listtool[3]
 
-        trainRoberta(output_dir, trainbs, True, num_train_epochs, use_cuda, True, i, learning, weight, warm)
+        trainRoberta(output_dir, trainbs, True, num_train_epochs, use_cuda, True, k, learning, weight, warm)
 
-    compareauto(len(list1_permutations), output_dir)
+    compareauto(list_permutations,output_dir)
 
-def compareauto(sizecombine,filename):
-    precision=[0,0]
-    recall=[0,0]
-    f1score=[0,0]
-    for i in range(1,sizecombine+1):
-           with open(filename+str(i)+"/eval_results.txt") as file:
+
+def compareauto(list_permutations,output_dir):
+    results = {}
+    precision_loc = [0, 0]
+    recall_loc = [0, 0]
+    f1score_loc = [0, 0]
+    precision_wght = [0, 0]
+    recall_wght = [0, 0]
+    f1score_wght = [0, 0]
+    grid_search = {}
+
+    for i in range(1, len(list_permutations) + 1):
+        with open(output_dir + str(i) + "/eval_results.txt") as file:
+            for line in file:
+                line[0].split()
                 for line in file:
-                         listword=line.split()
-                         if len(listword)>0:
-                             # print(listword)
-                             if listword[0]=="OCATION":
-                                print(listword[2])
-                                if precision[1]<float(listword[1]):
-                                      precision[1]=float(listword[1])
-                                      precision[0]=i
-                                if recall[1]<float(listword[2]):
-                                      recall[1]=float(listword[2])
-                                      recall[0]=i
-                                if f1score[1]<float(listword[3]):
-                                      f1score[1]=float(listword[3])
-                                      f1score[0]=i
+                    listword = line.split()
+                    if len(listword) > 0:
+                        if listword[0] == "LOCATION":
+                            precision_loc, recall_loc, f1score_loc \
+                                = get_best_grid_scores(precision_loc, recall_loc, f1score_loc, listword, i)
+                            results['LOCATION'] = [precision_loc, recall_loc, f1score_loc]
 
-    print("precision n " + str(precision[0]) + " - " + str(precision[1]))
-    print("recall n " + str(recall[0]) + " - " + str(recall[1]))
-    print("f1score n " + str(f1score[0]) + " - " + str(f1score[1]))
+                            grid_search[i] = [weightdecay, learningrate, trainbatchsize, f1score_loc[1]]
+                        if listword[0] == "weighted":
+                            precision_wght, recall_wght, f1score_wght \
+                                = get_best_grid_scores(precision_wght, recall_wght, f1score_wght, listword[1:], i)
+                            results['weighted'] = [precision_wght, recall_wght, f1score_wght]
+
+        weightdecay = list_permutations[results['LOCATION'][0][0]][0]
+        learningrate = list_permutations[results['LOCATION'][0][0]][1]
+        trainbatchsize = list_permutations[results['LOCATION'][0][0]][3]
+        grid_search[list_permutations[results['LOCATION'][0][0]]] = \
+            [weightdecay, learningrate, trainbatchsize, results['LOCATION'][1][1]]
+
+    for result in results:
+        print(result)
+        print("   precision n " + str(results[result][0][0]) + " - " + str(results[result][0][1]))
+        print("   recall n " + str(results[result][1][0]) + " - " + str(results[result][1][1]))
+        print("   f1score n " + str(results[result][2][0]) + " - " + str(results[result][2][1]))
+
+    generate_grid_search_results_print(grid_search, output_dir + "1", roberta_model)
+
+
+def get_best_grid_scores(precision, recall, f1score, listword, i):
+    if precision[1] < float(listword[1]):
+        precision[1] = float(listword[1])
+        precision[0] = i
+    if recall[1] < float(listword[2]):
+        recall[1] = float(listword[2])
+        recall[0] = i
+    if f1score[1] < float(listword[3]):
+        f1score[1] = float(listword[3])
+        f1score[0] = i
+
+    return precision, recall, f1score
                   
 def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer):
     """Loads a data file into a list of `InputBatch`s."""
+
     label_map = {label: i for i, label in enumerate(label_list, 1)}
 
     features = []
@@ -346,17 +402,11 @@ def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer
         ntokens = []
         segment_ids = []
         label_ids = []
-        segment_ids.append(0)
-        valid.insert(0, 1)
-        label_mask.insert(0, 1)
         for i, token in enumerate(tokens):
             ntokens.append(token)
             segment_ids.append(0)
             if len(labels) > i:
                 label_ids.append(label_map[labels[i]])
-        segment_ids.append(0)
-        valid.append(1)
-        label_mask.append(1)
         input_ids = tokenizer.convert_tokens_to_ids(ntokens)
         input_mask = [1] * len(input_ids)
         label_mask = [1] * len(label_ids)
@@ -370,15 +420,11 @@ def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer
         while len(label_ids) < max_seq_length:
             label_ids.append(0)
             label_mask.append(0)
-        if(len(segment_ids) != max_seq_length):
-            segment_ids.pop()
-        if(len(valid) != max_seq_length):
-            valid.pop()
         assert len(input_ids) == max_seq_length
         assert len(input_mask) == max_seq_length
-        # assert len(segment_ids) == max_seq_length
+        assert len(segment_ids) == max_seq_length
         assert len(label_ids) == max_seq_length
-        # assert len(valid) == max_seq_length
+        assert len(valid) == max_seq_length
         assert len(label_mask) == max_seq_length
 
         if ex_index < 5:
@@ -480,6 +526,7 @@ def predictionRoberta(t, model_name):
 
 def trainRoberta(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda, do_eval, indexEval,
               learning_rate, weight_decay, warmup_proportion):
+
     processors = {"ner": NerProcessor}
 
     n_gpu = torch.cuda.device_count()
