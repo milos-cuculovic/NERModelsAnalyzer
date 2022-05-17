@@ -400,14 +400,14 @@ b2 = 0.999
 import itertools
 
 def loopBerthyperparam(output_dir,num_train_epochs,use_cuda):
-    weightdecay         = [0.1, 0.01, 0.001, 0.0001]
-    learningrate        = [2e-5, 2.2e-5, 2.4e-5, 2.6e-5, 2.8e-5, 3e-5]
-    warmupproportion    = [0.1]
-    trainbatchsize      = [32, 30, 28, 26, 24, 22, 20, 18, 16]
-    #weightdecay = [0.1, 0.01, 0.001, 0.0001]
-    #learningrate = [1e-3, 5e-4, 1e-4, 5e-5, 1e-5]
-    #warmupproportion = [0.1]
-    #trainbatchsize = [16, 32, 64, 128, 256]
+    #weightdecay         = [0.1, 0.01, 0.001, 0.0001]
+    #learningrate        = [2e-5, 2.2e-5, 2.4e-5, 2.6e-5, 2.8e-5, 3e-5]
+    #warmupproportion    = [0.1]
+    #trainbatchsize      = [32, 30, 28, 26, 24, 22, 20, 18, 16]
+    weightdecay = [0.1, 0.01, 0.001, 0.0001]
+    learningrate = [0.01, 0.001, 0.0001, 0.00001]
+    warmupproportion = [0.1]
+    trainbatchsize = [16, 32, 64, 128]
 
     hyperparam          = [weightdecay, learningrate, warmupproportion, trainbatchsize]
     k                   = 0
@@ -451,17 +451,17 @@ def compareauto(list_permutations,output_dir):
                     if len(listword) > 0:
                         if listword[0] == "LOCATION":
                             precision_loc, recall_loc, f1score_loc \
-                                = get_best_grid_scores(precision_loc, recall_loc, f1score_loc, listword, i)
+                                = get_best_grid_scores(precision_loc, recall_loc, f1score_loc, listword, i+1)
                             results['LOCATION'] = [precision_loc, recall_loc, f1score_loc]
-                            weightdecay = list_permutations[i][0]
-                            learningrate = list_permutations[i][1]
-                            trainbatchsize = list_permutations[i][3]
-                            grid_search[i] = [weightdecay, learningrate, trainbatchsize, listword[1]]
 
                         if listword[0] == "weighted":
                             precision_wght, recall_wght, f1score_wght\
-                                = get_best_grid_scores(precision_wght, recall_wght, f1score_wght, listword[1:], i)
+                                = get_best_grid_scores(precision_wght, recall_wght, f1score_wght, listword[1:], i+1)
                             results['weighted'] = [precision_wght, recall_wght, f1score_wght]
+                            weightdecay = list_permutations[i][0]
+                            learningrate = list_permutations[i][1]
+                            trainbatchsize = list_permutations[i][3]
+                            grid_search[i] = [weightdecay, learningrate, trainbatchsize, listword[2]]
 
     for result in results:
         print(result)
@@ -589,15 +589,11 @@ def pip_aggregation(model_name, new_model_name):
 
 
 def prediction(text, model_name):
-
-    if text == "":
-        text = "The authors should correct the typos in the conclusion, those are visible within the lines: 22-28."
-
     punctuation = ['"',"-","(",")",":"]
     model_path = os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + model_name
     mode = AutoModelForTokenClassification.from_pretrained(model_path)
     tokenize = BertTokenizer.from_pretrained(model_path)
-    # mode("test")
+
     nlp_ner = pipeline(
         "ner",
         model=mode,
@@ -615,7 +611,7 @@ def prediction(text, model_name):
     result = nlp_ner(text)
     previous_valid_label = ""
     previous_word_is_punctuation = False
-    previous_valid_index = 0
+    number_of_composed_words = 0
 
     for dic in result:
         label = dic['entity']
@@ -626,30 +622,33 @@ def prediction(text, model_name):
         word = dic['word']
         index = dic['index']
 
+        if "##" in word:
+            number_of_composed_words += 1
+
         if label_name not in ("O","[CLS]","[SEP]"):
             if (label_name[2:] == previous_valid_label[2:] and previous_word_is_punctuation is True):
                 if "##" in word:
                     word = word.lstrip('##')
-                    dicINT["word"] += word
+                    dicINT["words"].append({"word":word, "index":index - number_of_composed_words})
                 elif word == "'" or word == "s":
-                    dicINT["word"] += word
+                    dicINT["words"].append({"word":word, "index":index - number_of_composed_words})
                 elif previous_word_is_punctuation is True:
-                    dicINT["word"] += word
+                    dicINT["words"].append({"word":word, "index":index - number_of_composed_words})
                 else:
-                    dicINT["word"] += " " + word
+                    dicINT["words"].append({"word":word, "index":index - number_of_composed_words})
             else:
                 if initial == False:
                     prediction.append(dicINT)
                     dicINT = {}
-                dicINT["word"] = word
+                dicINT["words"] = []
+                dicINT["words"].append({"word":word, "index":index - number_of_composed_words})
             dicINT["label"] = label_name[2:]
-            dicINT["index"] = index
             initial = False
             previous_valid_label = label_name
             previous_word_is_punctuation = False
         elif word in punctuation:
             previous_word_is_punctuation = True
-            dicINT["word"] += word
+            dicINT["words"].append({"word":word, "index":index - number_of_composed_words})
 
     prediction.append(dicINT)
 

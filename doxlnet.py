@@ -340,7 +340,7 @@ def loopxlnethyperparam(output_dir, num_train_epochs, use_cuda):
     #warmupproportion = [0.1]
     #trainbatchsize = [32, 30, 28, 26, 24, 22, 20, 18, 16]
     weightdecay = [0.1, 0.01, 0.001, 0.0001]
-    learningrate = [1e-3, 5e-4, 1e-4, 5e-5, 1e-5]
+    learningrate = [0.01, 0.001, 0.0001, 0.00001]
     warmupproportion = [0.1]
     trainbatchsize = [16, 32, 64, 128]
     hyperparam = [weightdecay, learningrate, warmupproportion, trainbatchsize]
