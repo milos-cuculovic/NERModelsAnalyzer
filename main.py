@@ -8,6 +8,7 @@ from datetime import datetime
 from dobert import trainBERTModel, evaluation, pip_aggregation, Ner, prediction,trainBERTGrid
 from doroberta import trainROBERTAModel, evaluationRoberta, pip_aggregationRoberta, predictionRoberta,trainROBERTAGrid
 from doxlnet import trainxlnetModel, trainxlnetGrid
+from create_doccano_json import createDoccannoJSON
 
 def train_model(model, output_dir, useCuda, spacy_model_type = "1", grid_type = "1"):
     LABEL = ['LOCATION', 'CONTENT', 'TRIGGER', 'MODAL', 'ACTION']
@@ -165,8 +166,12 @@ if __name__ == '__main__':
                         model_name = "scibert_grid_45_29.04.2022"
 
                     text = input("Enter your testing text: ")
-                    print(prediction(text, model_name))
-                    model = Ner('trained_models/' + model_name+'/')
+                    if text == "":
+                        text = "The authors should correct the typos in the conclusion, those are visible within the conclusion in the lines: 22-28."
+                    predictionResults = prediction(text, model_name)
+                    print(predictionResults)
+                    createDoccannoJSON(text, predictionResults)
+
 
                 elif model =="3":
                     model_name=input("Model name to test: ")

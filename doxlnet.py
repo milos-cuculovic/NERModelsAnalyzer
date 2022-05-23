@@ -36,6 +36,7 @@ from bertconf import removEsc, sentenceMean, json_conll, trigConll, crossval, ch
 import shutil
 from grid_search_results_print import generate_grid_search_results_print
 
+
 trigger= ['why', 'on the contrary','what','however','either','while','rather','instead of', 'when','than',
          'in order to','therefore','not only', 'afterwards','once again','or','in order to','in particular',
          'also','if not','if not then','and','not only','does','albeit','because','is that','that','without','who',
@@ -170,9 +171,6 @@ def trainxlnetModel(jsonfile, output_dir, nIter, use_cuda):
         device = "cuda"
     else:
         device = "cpu"
-
-    shutil.copyfile(r'train.txt', r'train_temp.txt')
-    shutil.copyfile(r'valid.txt', r'valid_temp.txt')
 
     trainxlnet(output_dir, train_batch_size, True, int(nIter), use_cuda, True, 1, learning_rate,
                weight_decay, warmup_proportion)
@@ -343,14 +341,10 @@ import itertools
 
 
 def loopxlnethyperparam(output_dir, num_train_epochs, use_cuda):
-    #weightdecay = [0.1, 0.01, 0.001, 0.0001]
-    #learningrate = [2e-5, 2.2e-5, 2.4e-5, 2.6e-5, 2.8e-5, 3e-5]
-    #warmupproportion = [0.1]
-    #trainbatchsize = [32, 30, 28, 26, 24, 22, 20, 18, 16]
     weightdecay = [0.1, 0.01, 0.001, 0.0001]
-    learningrate = [1e-3, 5e-4, 1e-4, 5e-5, 1e-5]
+    learningrate = [2e-5, 2.2e-5, 2.4e-5, 2.6e-5, 2.8e-5, 3e-5]
     warmupproportion = [0.1]
-    trainbatchsize = [16, 32, 64, 128]
+    trainbatchsize = [32, 30, 28, 26, 24, 22, 20, 18, 16]
     hyperparam = [weightdecay, learningrate, warmupproportion, trainbatchsize]
     k = 0
 
@@ -372,7 +366,10 @@ def loopxlnethyperparam(output_dir, num_train_epochs, use_cuda):
 
         trainxlnet(output_dir, trainbs, True, num_train_epochs, use_cuda, True, k, learning, weight, warm)
 
-    compareauto(list_permutations,output_dir)
+    compareauto(list_permutations, output_dir)
+
+    os.remove("train_temp.txt")
+    os.remove("valid_temp.txt")
 
 
 def compareauto(list_permutations,output_dir):
@@ -394,17 +391,17 @@ def compareauto(list_permutations,output_dir):
                     if len(listword) > 0:
                         if listword[0] == "LOCATION":
                             precision_loc, recall_loc, f1score_loc \
-                                = get_best_grid_scores(precision_loc, recall_loc, f1score_loc, listword, i)
+                                = get_best_grid_scores(precision_loc, recall_loc, f1score_loc, listword, i+1)
                             results['LOCATION'] = [precision_loc, recall_loc, f1score_loc]
-                            weightdecay = list_permutations[i][0]
-                            learningrate = list_permutations[i][1]
-                            trainbatchsize = list_permutations[i][3]
-                            grid_search[i] = [weightdecay, learningrate, trainbatchsize, listword[3]]
 
                         if listword[0] == "weighted":
                             precision_wght, recall_wght, f1score_wght\
-                                = get_best_grid_scores(precision_wght, recall_wght, f1score_wght, listword[1:], i)
+                                = get_best_grid_scores(precision_wght, recall_wght, f1score_wght, listword[1:], i+1)
                             results['weighted'] = [precision_wght, recall_wght, f1score_wght]
+                            weightdecay = list_permutations[i][0]
+                            learningrate = list_permutations[i][1]
+                            trainbatchsize = list_permutations[i][3]
+                            grid_search[i] = [weightdecay, learningrate, trainbatchsize, listword[2]]
 
     for result in results:
         print(result)
@@ -779,7 +776,8 @@ def trainxlnet(output_dir, train_batch_size, do_train, num_train_epochs, use_cud
         y_true = []
         y_pred = []
         label_map = {i: label for i, label in enumerate(label_list, 1)}
-        for input_ids, input_mask, label_ids, l_mask in tqdm(eval_dataloader, desc="Evaluating"):
+        for input_ids, input_mask, label_ids, l_mask in tqdm(eval_dataloader,
+                                                             desc="Evaluating"):
             input_ids = input_ids.to(device)
             input_mask = input_mask.to(device)
             label_ids = label_ids.to(device)
@@ -791,8 +789,10 @@ def trainxlnet(output_dir, train_batch_size, do_train, num_train_epochs, use_cud
             softmax = F.softmax(logits, dim=2)
             index = torch.argmax(softmax, dim=2)
             index = index.detach().cpu().numpy()
+            # print(logits[1])
             label_ids = label_ids.to('cpu').numpy()
             input_mask = input_mask.to('cpu').numpy()
+            # print(label_map)
 
             for i, label in enumerate(label_ids):
                 temp_1 = []
