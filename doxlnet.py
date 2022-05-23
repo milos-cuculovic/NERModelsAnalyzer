@@ -34,6 +34,8 @@ import torch.optim as optim
 from torch.nn.parallel import DistributedDataParallel as DDP
 from bertconf import removEsc, sentenceMean, json_conll, trigConll, crossval, changeToOther
 import shutil
+from grid_search_results_print import generate_grid_search_results_print
+
 
 trigger= ['why', 'on the contrary','what','however','either','while','rather','instead of', 'when','than',
          'in order to','therefore','not only', 'afterwards','once again','or','in order to','in particular',
@@ -370,7 +372,7 @@ def loopxlnethyperparam(output_dir, num_train_epochs, use_cuda):
     os.remove("valid_temp.txt")
 
 
-def compareauto(list_permutations, filename):
+def compareauto(list_permutations,output_dir):
     results = {}
     precision_loc = [0, 0]
     recall_loc = [0, 0]
@@ -380,8 +382,8 @@ def compareauto(list_permutations, filename):
     f1score_wght = [0, 0]
     grid_search = {}
 
-    for i in range(1, len(list_permutations) + 1):
-        with open(filename + str(i) + "/eval_results.txt") as file:
+    for i in range(0, len(list_permutations)):
+        with open(output_dir + "/" + str(i+1) + "/eval_results.txt") as file:
             for line in file:
                 line[0].split()
                 for line in file:
@@ -389,17 +391,17 @@ def compareauto(list_permutations, filename):
                     if len(listword) > 0:
                         if listword[0] == "LOCATION":
                             precision_loc, recall_loc, f1score_loc \
-                                = get_best_grid_scores(precision_loc, recall_loc, f1score_loc, listword, i)
+                                = get_best_grid_scores(precision_loc, recall_loc, f1score_loc, listword, i+1)
                             results['LOCATION'] = [precision_loc, recall_loc, f1score_loc]
+
+                        if listword[0] == "weighted":
+                            precision_wght, recall_wght, f1score_wght\
+                                = get_best_grid_scores(precision_wght, recall_wght, f1score_wght, listword[1:], i+1)
+                            results['weighted'] = [precision_wght, recall_wght, f1score_wght]
                             weightdecay = list_permutations[i][0]
                             learningrate = list_permutations[i][1]
                             trainbatchsize = list_permutations[i][3]
-
-                            grid_search[i] = [weightdecay, learningrate, trainbatchsize, f1score_loc[1]]
-                        if listword[0] == "weighted":
-                            precision_wght, recall_wght, f1score_wght \
-                                = get_best_grid_scores(precision_wght, recall_wght, f1score_wght, listword[1:], i)
-                            results['weighted'] = [precision_wght, recall_wght, f1score_wght]
+                            grid_search[i] = [weightdecay, learningrate, trainbatchsize, listword[2]]
 
     for result in results:
         print(result)
@@ -407,7 +409,7 @@ def compareauto(list_permutations, filename):
         print("   recall n " + str(results[result][1][0]) + " - " + str(results[result][1][1]))
         print("   f1score n " + str(results[result][2][0]) + " - " + str(results[result][2][1]))
 
-    # generate_grid_search_results_print(grid_search)
+    generate_grid_search_results_print(grid_search, output_dir + "1", xlnet_model)
 
 
 def get_best_grid_scores(precision, recall, f1score, listword, i):
