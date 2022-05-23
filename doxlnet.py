@@ -1,3 +1,11 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Tue May  3 15:33:04 2022
+
+@author: chams
+"""
+
 import os
 from torch import nn
 import json
@@ -26,7 +34,6 @@ import torch.optim as optim
 from torch.nn.parallel import DistributedDataParallel as DDP
 from bertconf import removEsc, sentenceMean, json_conll, trigConll, crossval, changeToOther
 import shutil
-from grid_search_results_print import generate_grid_search_results_print
 
 trigger= ['why', 'on the contrary','what','however','either','while','rather','instead of', 'when','than',
          'in order to','therefore','not only', 'afterwards','once again','or','in order to','in particular',
@@ -163,9 +170,6 @@ def trainxlnetModel(jsonfile, output_dir, nIter, use_cuda):
     else:
         device = "cpu"
 
-    shutil.copyfile(r'train.txt', r'train_temp.txt')
-    shutil.copyfile(r'valid.txt', r'valid_temp.txt')
-
     trainxlnet(output_dir, train_batch_size, True, int(nIter), use_cuda, True, 1, learning_rate,
                weight_decay, warmup_proportion)
 
@@ -292,12 +296,12 @@ class NerProcessor(DataProcessor):
     def get_train_examples(self, data_dir):
         """See base class."""
         return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "train_temp.txt")), "train")
+            self._read_tsv(os.path.join(data_dir, "train.txt")), "train")
 
     def get_dev_examples(self, data_dir):
         """See base class."""
         return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "valid_temp.txt")), "dev")
+            self._read_tsv(os.path.join(data_dir, "valid.txt")), "dev")
 
     def get_test_examples(self, data_dir):
         """See base class."""
@@ -335,14 +339,10 @@ import itertools
 
 
 def loopxlnethyperparam(output_dir, num_train_epochs, use_cuda):
-    #weightdecay = [0.1, 0.01, 0.001, 0.0001]
-    #learningrate = [2e-5, 2.2e-5, 2.4e-5, 2.6e-5, 2.8e-5, 3e-5]
-    #warmupproportion = [0.1]
-    #trainbatchsize = [32, 30, 28, 26, 24, 22, 20, 18, 16]
     weightdecay = [0.1, 0.01, 0.001, 0.0001]
-    learningrate = [0.01, 0.001, 0.0001, 0.00001]
+    learningrate = [2e-5, 2.2e-5, 2.4e-5, 2.6e-5, 2.8e-5, 3e-5]
     warmupproportion = [0.1]
-    trainbatchsize = [16, 32, 64, 128]
+    trainbatchsize = [32, 30, 28, 26, 24, 22, 20, 18, 16]
     hyperparam = [weightdecay, learningrate, warmupproportion, trainbatchsize]
     k = 0
 
@@ -364,10 +364,13 @@ def loopxlnethyperparam(output_dir, num_train_epochs, use_cuda):
 
         trainxlnet(output_dir, trainbs, True, num_train_epochs, use_cuda, True, k, learning, weight, warm)
 
-    compareauto(list_permutations,output_dir)
+    compareauto(list_permutations, output_dir)
+
+    os.remove("train_temp.txt")
+    os.remove("valid_temp.txt")
 
 
-def compareauto(list_permutations,output_dir):
+def compareauto(list_permutations, filename):
     results = {}
     precision_loc = [0, 0]
     recall_loc = [0, 0]
@@ -377,8 +380,8 @@ def compareauto(list_permutations,output_dir):
     f1score_wght = [0, 0]
     grid_search = {}
 
-    for i in range(0, len(list_permutations)):
-        with open(output_dir + "/" + str(i+1) + "/eval_results.txt") as file:
+    for i in range(1, len(list_permutations) + 1):
+        with open(filename + str(i) + "/eval_results.txt") as file:
             for line in file:
                 line[0].split()
                 for line in file:
@@ -391,10 +394,10 @@ def compareauto(list_permutations,output_dir):
                             weightdecay = list_permutations[i][0]
                             learningrate = list_permutations[i][1]
                             trainbatchsize = list_permutations[i][3]
-                            grid_search[i] = [weightdecay, learningrate, trainbatchsize, listword[3]]
 
+                            grid_search[i] = [weightdecay, learningrate, trainbatchsize, f1score_loc[1]]
                         if listword[0] == "weighted":
-                            precision_wght, recall_wght, f1score_wght\
+                            precision_wght, recall_wght, f1score_wght \
                                 = get_best_grid_scores(precision_wght, recall_wght, f1score_wght, listword[1:], i)
                             results['weighted'] = [precision_wght, recall_wght, f1score_wght]
 
@@ -404,7 +407,7 @@ def compareauto(list_permutations,output_dir):
         print("   recall n " + str(results[result][1][0]) + " - " + str(results[result][1][1]))
         print("   f1score n " + str(results[result][2][0]) + " - " + str(results[result][2][1]))
 
-    generate_grid_search_results_print(grid_search, output_dir + "1", xlnet_model)
+    # generate_grid_search_results_print(grid_search)
 
 
 def get_best_grid_scores(precision, recall, f1score, listword, i):
@@ -676,14 +679,35 @@ def trainxlnet(output_dir, train_batch_size, do_train, num_train_epochs, use_cud
 
         for _ in trange(int(num_train_epochs), desc="Epoch"):
             tr_loss = 0
+            best_losses=1
             nb_tr_examples, nb_tr_steps = 0, 0
+            """          for step, batch in enumerate(tqdm(train_dataloader, desc="Iteration")):
+                batch = tuple(t.to(device) for t in batch)
+
+                input_ids, input_mask, label_ids, l_mask = batch
+                loss = model(input_ids=input_ids, attention_mask=input_mask,
+                               attention_mask_label=l_mask, labels=label_ids)
+                loss = loss["loss"]
+                loss.backward()
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
+                optimizer.step()
+                scheduler.step()
+                optimizer.zero_grad() # added
+                model.zero_grad()
+                global_step+=1
+                tr_loss += loss.item()"""
             for step, batch in enumerate(tqdm(train_dataloader, desc="Iteration")):
                 batch = tuple(t.to(device) for t in batch)
                 input_ids, input_mask, label_ids, l_mask = batch
-                output = model(input_ids=input_ids, token_type_ids=None, attention_mask=input_mask,
+                loss = model(input_ids=input_ids, attention_mask=input_mask,
                                attention_mask_label=l_mask, labels=label_ids)
-                loss = output["loss"]
-                logits = output["logits"]
+                loss = loss["loss"]                
+                loss = loss.mean()  # mean() to average on multi-gpu.
+                if gradient_accumulation_steps > 1:
+                    loss = loss / gradient_accumulation_steps
+
+                loss.backward()
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
                 tr_loss += loss.item()
                 nb_tr_examples += input_ids.size(0)
                 nb_tr_steps += 1
@@ -692,8 +716,11 @@ def trainxlnet(output_dir, train_batch_size, do_train, num_train_epochs, use_cud
                     scheduler.step()  # Update learning rate schedule
                     model.zero_grad()
                     global_step += 1
-
             tr_losses = tr_loss / len(train_dataloader)
+            if tr_losses < best_losses:
+                best_losses = tr_losses
+                model_to_save = model.module if hasattr(model, 'module') else model
+
             if tr_losses < 0.05:
                 break
             train_losses.append(tr_losses)
@@ -747,7 +774,8 @@ def trainxlnet(output_dir, train_batch_size, do_train, num_train_epochs, use_cud
         y_true = []
         y_pred = []
         label_map = {i: label for i, label in enumerate(label_list, 1)}
-        for input_ids, input_mask, label_ids, l_mask in tqdm(eval_dataloader, desc="Evaluating"):
+        for input_ids, input_mask, label_ids, l_mask in tqdm(eval_dataloader,
+                                                             desc="Evaluating"):
             input_ids = input_ids.to(device)
             input_mask = input_mask.to(device)
             label_ids = label_ids.to(device)
@@ -759,8 +787,10 @@ def trainxlnet(output_dir, train_batch_size, do_train, num_train_epochs, use_cud
             softmax = F.softmax(logits, dim=2)
             index = torch.argmax(softmax, dim=2)
             index = index.detach().cpu().numpy()
+            # print(logits[1])
             label_ids = label_ids.to('cpu').numpy()
             input_mask = input_mask.to('cpu').numpy()
+            # print(label_map)
 
             for i, label in enumerate(label_ids):
                 temp_1 = []
@@ -769,17 +799,12 @@ def trainxlnet(output_dir, train_batch_size, do_train, num_train_epochs, use_cud
                     if j == 0:
                         continue
 
-                    elif label_ids[i][j] == len(label_map):
+                    elif label_ids[i][j] == 0:
                         y_true.append(temp_1)
                         y_pred.append(temp_2)
                         break
                     else:
-                        try:
-                            temp_1.append(label_map[label_ids[i][j]])
-                        except:
-                            print(i)
-                            print(j)
-                            print(label_ids[i][j])
+                        temp_1.append(label_map[label_ids[i][j]])
 
                         lab_pred = index[i][j]
                         if lab_pred == 0:
