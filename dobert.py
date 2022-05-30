@@ -45,7 +45,7 @@ trigger= ['why', 'on the contrary','what','however','either','while','rather','i
          'despite','accordingly','etc','always','what kind','unless','which one','if not','if so','even if',
          'not just','not only','besides','after all','generally','similar to','too','like']
 
-labelremove=["CONTENT"]
+labelremove=[]
 lab_list=["O", "B-LOCATION", "I-LOCATION", "B-TRIGGER", "I-TRIGGER",
                 "B-MODAL", "I-MODAL", "B-ACTION", "I-ACTION", "B-CONTENT", "I-CONTENT", "[CLS]", "[SEP]"]
 
@@ -389,7 +389,7 @@ fp16 = 'store_true'
 gradient_accumulation_steps = 1
 seed = 42
 eval_batch_size = 8
-bert_model = "bert-base-cased"
+bert_model = "scibert_scivocab_cased"
 adam_epsilon = 1e-8
 max_grad_norm = 1.0
 max_seq_length = 128
@@ -428,7 +428,8 @@ def loopBerthyperparam(output_dir,num_train_epochs,use_cuda):
         warm = listtool[2]
         trainbs = listtool[3]
 
-        trainBert(output_dir, trainbs, True, num_train_epochs, use_cuda, True, k, learning, weight, warm)
+        #trainBert(output_dir, trainbs, True, num_train_epochs, use_cuda, True, k, learning, weight, warm)
+        trainBert(output_dir, trainbs, False, num_train_epochs, use_cuda, True, k, learning, weight, warm)
 
     compareauto(list_permutations,output_dir)
 
@@ -461,7 +462,7 @@ def compareauto(list_permutations,output_dir):
                             weightdecay = list_permutations[i][0]
                             learningrate = list_permutations[i][1]
                             trainbatchsize = list_permutations[i][3]
-                            grid_search[i] = [weightdecay, learningrate, trainbatchsize, listword[2]]
+                            grid_search[i] = [weightdecay, learningrate, trainbatchsize, listword[4]]
 
     for result in results:
         print(result)
@@ -469,7 +470,7 @@ def compareauto(list_permutations,output_dir):
         print("   recall n " + str(results[result][1][0]) + " - " + str(results[result][1][1]))
         print("   f1score n " + str(results[result][2][0]) + " - " + str(results[result][2][1]))
 
-    generate_grid_search_results_print(grid_search, output_dir + "1", bert_model)
+    generate_grid_search_results_print(grid_search, output_dir, bert_model)
 
 
 def get_best_grid_scores(precision, recall, f1score, listword, i):
@@ -895,9 +896,11 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
                             print(label_ids[i][j])
 
                         lab_pred=logits[i][j]
-                        temp_2.append(label_map[lab_pred])
                         if "CLS" in label_map[lab_pred] or  "SEP" in label_map[lab_pred]:
                             lab_pred=1
+
+                        temp_2.append(label_map[lab_pred])
+
                         
         
         report = classification_report(y_true, y_pred, digits=4)
