@@ -328,8 +328,8 @@ def compareauto(list_permutations,output_dir):
     f1score_wght = [0, 0]
     grid_search = {}
 
-    for i in range(1, len(list_permutations) + 1):
-        with open(output_dir + str(i) + "/eval_results.txt") as file:
+    for i in range(0, len(list_permutations)):
+        with open(output_dir + "/" + str(i+1) + "/eval_results.txt") as file:
             for line in file:
                 line[0].split()
                 for line in file:
@@ -337,20 +337,17 @@ def compareauto(list_permutations,output_dir):
                     if len(listword) > 0:
                         if listword[0] == "LOCATION":
                             precision_loc, recall_loc, f1score_loc \
-                                = get_best_grid_scores(precision_loc, recall_loc, f1score_loc, listword, i)
+                                = get_best_grid_scores(precision_loc, recall_loc, f1score_loc, listword, i+1)
                             results['LOCATION'] = [precision_loc, recall_loc, f1score_loc]
 
-                            grid_search[i] = [weightdecay, learningrate, trainbatchsize, f1score_loc[1]]
                         if listword[0] == "weighted":
-                            precision_wght, recall_wght, f1score_wght \
-                                = get_best_grid_scores(precision_wght, recall_wght, f1score_wght, listword[1:], i)
+                            precision_wght, recall_wght, f1score_wght\
+                                = get_best_grid_scores(precision_wght, recall_wght, f1score_wght, listword[1:], i+1)
                             results['weighted'] = [precision_wght, recall_wght, f1score_wght]
-
-        weightdecay = list_permutations[results['LOCATION'][0][0]][0]
-        learningrate = list_permutations[results['LOCATION'][0][0]][1]
-        trainbatchsize = list_permutations[results['LOCATION'][0][0]][3]
-        grid_search[list_permutations[results['LOCATION'][0][0]]] = \
-            [weightdecay, learningrate, trainbatchsize, results['LOCATION'][1][1]]
+                            weightdecay = list_permutations[i][0]
+                            learningrate = list_permutations[i][1]
+                            trainbatchsize = list_permutations[i][3]
+                            grid_search[i] = [weightdecay, learningrate, trainbatchsize, listword[4]]
 
     for result in results:
         print(result)
@@ -358,7 +355,7 @@ def compareauto(list_permutations,output_dir):
         print("   recall n " + str(results[result][1][0]) + " - " + str(results[result][1][1]))
         print("   f1score n " + str(results[result][2][0]) + " - " + str(results[result][2][1]))
 
-    generate_grid_search_results_print(grid_search, output_dir + "1", roberta_model)
+    generate_grid_search_results_print(grid_search, output_dir, roberta_model)
 
 
 def get_best_grid_scores(precision, recall, f1score, listword, i):
