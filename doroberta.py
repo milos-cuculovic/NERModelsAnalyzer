@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 """
 Created on Fri Jun 25 17:49:48 2021
-
 @author: chams
 """
 import os
@@ -32,7 +31,7 @@ import shutil
 from grid_search_results_print import generate_grid_search_results_print
 
 device = 'cpu'
-labelremove=["CONTENT"]
+labelremove=[]
 lab_list=["O", "B-LOCATION", "I-LOCATION", "B-TRIGGER", "I-TRIGGER",
                 "B-MODAL", "I-MODAL", "B-ACTION", "I-ACTION", "B-CONTENT", "I-CONTENT"]
 
@@ -42,7 +41,7 @@ def trainROBERTAModel(jsonfile, output_dir, nIter, use_cuda):
     learning_rate       = 2.2e-05
     weight_decay        = 0.01
     warmup_proportion   = 0.1
-    train_batch_size    = 10
+    train_batch_size    = 26
 
     # INITIAL
     # removEsc(os.path.abspath(jsonfile))
@@ -381,6 +380,7 @@ def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer
 
     features = []
     for (ex_index, example) in enumerate(examples):
+
         textlist = example.text_a.split(' ')
         labellist = example.label
         tokens = []
@@ -398,6 +398,7 @@ def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer
                     label_mask.append(1)
                 else:
                     valid.append(0)
+            
         if len(tokens) >= max_seq_length - 1:
             tokens = tokens[0:(max_seq_length - 2)]
             labels = labels[0:(max_seq_length - 2)]
@@ -440,7 +441,7 @@ def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer
             logger.info("input_mask: %s" % " ".join([str(x) for x in input_mask]))
             logger.info(
                 "segment_ids: %s" % " ".join([str(x) for x in segment_ids]))
-            # logger.info("label: %s (id = %d)" % (example.label, label_ids))
+            logger.info("label:%s" % " ".join([str(x) for x in label_ids]))
 
         features.append(
             InputFeatures(input_ids=input_ids,
@@ -742,20 +743,19 @@ def trainRoberta(output_dir, train_batch_size, do_train, num_train_epochs, use_c
             # print("map")
             # print(label_map)
             for i, label in enumerate(label_ids):
-                
+                print(logits[i])
+
                 temp_1 = []
                 temp_2 = []
                 for m, j in enumerate(label):
-                    if j == 0:
-                        continue
-                    elif label_ids[i][j] == len(label_map) or label_ids[i][j] ==0 :
+                    if j ==0 :
                         # print(temp_2)
                         y_true.append(temp_1)
                         y_pred.append(temp_2)
                         break
                     else:
-                        temp_1.append(label_map[label_ids[i][j]])
-                        temp_2.append(label_map[logits[i][j]])
+                        temp_1.append(label_map[j])
+                        temp_2.append(label_map[logits[i][m]])
         print(y_true)
         report = classification_report(y_true, y_pred, digits=4)
         logger.info("\n%s", report)
