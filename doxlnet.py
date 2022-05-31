@@ -150,7 +150,7 @@ def trainxlnetModel(jsonfile, output_dir, nIter, use_cuda):
     train_batch_size = 26
 
     # INITIAL
-    removEsc(os.path.abspath(jsonfile))
+    #removEsc(os.path.abspath(jsonfile))
 
     # STEP ONE cross validation
     # crossval(os.path.abspath(jsonfile), os.path.abspath(""))
@@ -298,12 +298,12 @@ class NerProcessor(DataProcessor):
     def get_train_examples(self, data_dir):
         """See base class."""
         return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "train.txt")), "train")
+            self._read_tsv(os.path.join(data_dir, "train_temp.txt")), "train")
 
     def get_dev_examples(self, data_dir):
         """See base class."""
         return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "valid.txt")), "dev")
+            self._read_tsv(os.path.join(data_dir, "valid_temp.txt")), "dev")
 
     def get_test_examples(self, data_dir):
         """See base class."""
@@ -342,9 +342,10 @@ import itertools
 
 def loopxlnethyperparam(output_dir, num_train_epochs, use_cuda):
     weightdecay = [0.1, 0.01, 0.001, 0.0001]
-    learningrate = [2e-5, 2.2e-5, 2.4e-5, 2.6e-5, 2.8e-5, 3e-5]
+    learningrate = [0.01, 0.001, 0.0001, 0.00001]
     warmupproportion = [0.1]
-    trainbatchsize = [32, 30, 28, 26, 24, 22, 20, 18, 16]
+    trainbatchsize = [16, 32, 64, 96]
+
     hyperparam = [weightdecay, learningrate, warmupproportion, trainbatchsize]
     k = 0
 
@@ -364,7 +365,7 @@ def loopxlnethyperparam(output_dir, num_train_epochs, use_cuda):
         warm = listtool[2]
         trainbs = listtool[3]
 
-        trainxlnet(output_dir, trainbs, True, num_train_epochs, use_cuda, True, k, learning, weight, warm)
+        #trainxlnet(output_dir, trainbs, True, num_train_epochs, use_cuda, True, k, learning, weight, warm)
 
     compareauto(list_permutations, output_dir)
 
@@ -401,15 +402,14 @@ def compareauto(list_permutations,output_dir):
                             weightdecay = list_permutations[i][0]
                             learningrate = list_permutations[i][1]
                             trainbatchsize = list_permutations[i][3]
-                            grid_search[i] = [weightdecay, learningrate, trainbatchsize, listword[2]]
+                            grid_search[i] = [weightdecay, learningrate, trainbatchsize, listword[4]]
 
     for result in results:
-        print(result)
         print("   precision n " + str(results[result][0][0]) + " - " + str(results[result][0][1]))
         print("   recall n " + str(results[result][1][0]) + " - " + str(results[result][1][1]))
         print("   f1score n " + str(results[result][2][0]) + " - " + str(results[result][2][1]))
 
-    generate_grid_search_results_print(grid_search, output_dir + "1", xlnet_model)
+    generate_grid_search_results_print(grid_search, output_dir, xlnet_model)
 
 
 def get_best_grid_scores(precision, recall, f1score, listword, i):
@@ -534,7 +534,6 @@ def prediction(t, model_name):
 
     # label_list = ["B-LOCATION", "I-LOCATION", "B-TRIGGER", "I-TRIGGER",
     #              "B-MODAL", "I-MODAL", "B-ACTION", "I-ACTION", "B-CONTENT", "I-CONTENT"]
-    print(nlp_ner(t))
     prediction = []
     initial = True
     dicINT = {}
@@ -812,7 +811,6 @@ def trainxlnet(output_dir, train_batch_size, do_train, num_train_epochs, use_cud
                         if lab_pred == 0:
                             lab_pred = 1
                         temp_2.append(label_map[lab_pred])
-        print(y_pred)
         report = classification_report(y_true, y_pred, digits=4)
         logger.info("\n%s", report)
         output_eval_file = os.path.join(output_dir, "eval_results.txt")
