@@ -389,7 +389,7 @@ fp16 = 'store_true'
 gradient_accumulation_steps = 1
 seed = 42
 eval_batch_size = 8
-bert_model = "scibert_scivocab_cased"
+bert_model = "bert-base-cased"
 adam_epsilon = 1e-8
 max_grad_norm = 1.0
 max_seq_length = 128
@@ -400,14 +400,14 @@ b2 = 0.999
 import itertools
 
 def loopBerthyperparam(output_dir,num_train_epochs,use_cuda):
-    #weightdecay         = [0.1, 0.01, 0.001, 0.0001]
-    #learningrate        = [2e-5, 2.2e-5, 2.4e-5, 2.6e-5, 2.8e-5, 3e-5]
-    #warmupproportion    = [0.1]
-    #trainbatchsize      = [32, 30, 28, 26, 24, 22, 20, 18, 16]
-    weightdecay = [0.1, 0.01, 0.001, 0.0001]
-    learningrate = [0.01, 0.001, 0.0001, 0.00001]
-    warmupproportion = [0.1]
-    trainbatchsize = [16, 32, 64, 128]
+    weightdecay         = [0.1, .01, .001, .0001]
+    learningrate        = [1e-5, 2.5e-5, 5e-5, 7.5e-5, 1e-4, 2.5e-5, 5e-4, 7.5e-4, 1e-3]
+    warmupproportion    = [0.1]
+    trainbatchsize      = [128, 32, 24, 18, 12, 8]
+    #weightdecay = [0.1, 0.01, 0.001, 0.0001]
+    #learningrate = [0.01, 0.001, 0.0001, 0.00001]
+    #warmupproportion = [0.1]
+    #trainbatchsize = [128, 64, 32, 16]
 
     hyperparam          = [weightdecay, learningrate, warmupproportion, trainbatchsize]
     k                   = 0
@@ -428,8 +428,7 @@ def loopBerthyperparam(output_dir,num_train_epochs,use_cuda):
         warm = listtool[2]
         trainbs = listtool[3]
 
-        #trainBert(output_dir, trainbs, True, num_train_epochs, use_cuda, True, k, learning, weight, warm)
-        trainBert(output_dir, trainbs, False, num_train_epochs, use_cuda, True, k, learning, weight, warm)
+        trainBert(output_dir, trainbs, True, num_train_epochs, use_cuda, True, k, learning, weight, warm)
 
     compareauto(list_permutations,output_dir)
 
