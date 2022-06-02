@@ -70,6 +70,13 @@ def trainROBERTAModel(jsonfile, output_dir, nIter, use_cuda):
 
     shutil.copyfile(r'train.txt', r'train_temp.txt')
     shutil.copyfile(r'valid.txt', r'valid_temp.txt')
+    
+
+    for i in labelremove:
+        changeToOther(i, "train_temp.txt")
+        changeToOther(i, "valid_temp.txt")
+        lab_list.remove("I-" + i)
+        lab_list.remove("B-" + i)
 
     trainRoberta(output_dir, train_batch_size, True, int(nIter), use_cuda, True, 1, learning_rate,
               weight_decay, warmup_proportion)
