@@ -361,7 +361,7 @@ def compareauto(list_permutations,output_dir):
         print("   recall n " + str(results[result][1][0]) + " - " + str(results[result][1][1]))
         print("   f1score n " + str(results[result][2][0]) + " - " + str(results[result][2][1]))
 
-    generate_grid_search_results_print(grid_search, output_dir, bert_model)
+    generate_grid_search_results_print(grid_search, output_dir, roberta_model)
 
 
 def get_best_grid_scores(precision, recall, f1score, listword, i):
