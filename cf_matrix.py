@@ -1,34 +1,58 @@
-
-import html
-import matplotlib.pyplot as plt
 import numpy as np
-import plotly.express as px
-from sklearn.metrics import confusion_matrix
-import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn import svm, datasets
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+from sklearn.utils.multiclass import unique_labels
 
-def generate_plotly_cf_mat(y_true,y_pred, label_map ,figure_name:str,figure_path:str):
+def generate_confusion_matrix(y_true,y_pred, figure_path:str, model_name):
     map={"O":"O", "B-LOCATION":"LOCATION", "I-LOCATION":"LOCATION", "B-TRIGGER":"TRIGGER", "I-TRIGGER":"TRIGGER",
-                  "B-MODAL":"MODAL", "I-MODAL":"MODAL", "B-ACTION":"ACTION", "I-ACTION":"ACTION", "B-CONTENT":"CONTENT", "I-CONTENT":"CONTENT"}
+                  "B-MODAL":"MODAL", "I-MODAL":"MODAL", "B-ACTION":"ACTION", "I-ACTION":"ACTION"}
     y_true=[map[i] for i in y_true]
-    print(y_true[:20])
+
     y_pred=[map[i] for i in y_pred]
-    print(y_pred[:20])
+
     labels=list(set(list(map.values())))
     labels.sort()
-    print(labels)
+
     cf_matrix=confusion_matrix(y_true,y_pred,normalize="true")
     cf_diag=np.diag(cf_matrix)
     idx=np.argsort(cf_diag)
-    cf_matrix=cf_matrix[idx,:][:,idx]
-    cf_matrix=pd.DataFrame(cf_matrix)
     cat_names=[labels[i] for i in idx]
-    fig = px.imshow(np.array(cf_matrix),
-                labels=dict(x="Actual", y="Predicted"),
-                x=cat_names,
-                y=cat_names
-               )
-    fig.write_html(figure_path+figure_name, auto_open=True)
-    fig.show()
+    cat_names.sort()
+
+    plot_confusion_matrix(y_true, y_pred, cat_names, figure_path, model_name)
+
+
+def plot_confusion_matrix(y_true, y_pred, classes,
+                          figure_path, model_name):
+
+    cf_matrix = confusion_matrix(y_true, y_pred, normalize="true")
+
+    group_counts = ["{:.2f}".format(value) for value in
+                    cf_matrix.flatten()]
+
+    group_percentages = ["{0:.2%}".format(value) for value in
+                         cf_matrix.flatten() / np.sum(cf_matrix)]
+
+    labels = [f"{v1}\n{v2}\n" for v1, v2 in
+              zip(group_counts, group_percentages)]
+
+    labels = np.asarray(labels).reshape(5, 5)
+
+    plt.figure(figsize = (9,9))
+    ax = sns.heatmap(cf_matrix, annot=labels, fmt='', cmap='Blues', square=True, cbar_kws={'label': 'F1 score'})
+    ax.set_title("\n\n" + model_name + "\n\n");
+    ax.set_xlabel('\nPredicted', fontsize=16)
+    ax.set_ylabel('Actual\n', fontsize=16);
+    ax.xaxis.set_ticklabels(classes)
+    ax.yaxis.set_ticklabels(classes)
+
+    plt.savefig(figure_path + "/confusion_matrix.png")
+
+
+
 
 if __name__=="__main__":
     label_map = ["CONTENT","TRIGGER","ACTION"]

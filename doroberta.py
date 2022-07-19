@@ -19,6 +19,7 @@ from transformers import RobertaTokenizer, AutoTokenizer
 roberta_base_path = '../input/huggingface-roberta/roberta-base'
 from transformers import RobertaConfig,  RobertaForTokenClassification
 
+import cf_matrix
 import torch
 from tqdm import tqdm, trange
 from seqeval.metrics import classification_report
@@ -31,7 +32,7 @@ import shutil
 from grid_search_results_print import generate_grid_search_results_print
 
 device = 'cpu'
-labelremove=[]
+labelremove=["CONTENT"]
 lab_list=["O", "B-LOCATION", "I-LOCATION", "B-TRIGGER", "I-TRIGGER",
                 "B-MODAL", "I-MODAL", "B-ACTION", "I-ACTION", "B-CONTENT", "I-CONTENT"]
 
@@ -78,7 +79,7 @@ def trainROBERTAModel(jsonfile, output_dir, nIter, use_cuda):
         lab_list.remove("I-" + i)
         lab_list.remove("B-" + i)
 
-    trainRoberta(output_dir, train_batch_size, True, int(nIter), use_cuda, True, 1, learning_rate,
+    trainRoberta(output_dir, train_batch_size, False, int(nIter), use_cuda, True, 0, learning_rate,
               weight_decay, warmup_proportion)
     
 def trainROBERTAGrid(jsonfile, output_dir, nIter, use_cuda):
@@ -480,14 +481,11 @@ def predictionRoberta(t, model_name):
         model=mode,
         tokenizer=tokenize
     )
-    print(nlp_ner(t))
-    print("test")
-    print(t)
     prediction = []
     initial = True
     dicINT = {}
     result = nlp_ner(t)
-    print(result)
+
     for dic in result:
         label = dic['entity']
         # print(label)#
@@ -552,8 +550,9 @@ def trainRoberta(output_dir, train_batch_size, do_train, num_train_epochs, use_c
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-    
-    output_dir=output_dir+str(indexEval)
+
+    if indexEval != 0:
+        output_dir = output_dir + str(indexEval)
     if os.path.exists(output_dir) and os.listdir(output_dir) and do_train:
         raise ValueError("Output directory ({}) already exists and is not empty.".format(output_dir))
     if not os.path.exists(output_dir):
@@ -670,12 +669,9 @@ def trainRoberta(output_dir, train_batch_size, do_train, num_train_epochs, use_c
             if tr_losses < 0.05:
                 break
             train_losses.append(tr_losses)
-            print(train_losses)
-            print(len(train_losses))
 
         # Save a trained model and the associated configuration
-        print(train_losses)
-        print(len(train_losses))
+
         model_to_save = model.module if hasattr(model, 'module') else model  # Only save the model it-self
         model_to_save.save_pretrained(output_dir)
         tokenizer.save_pretrained(output_dir)
@@ -747,8 +743,6 @@ def trainRoberta(output_dir, train_batch_size, do_train, num_train_epochs, use_c
             # print("map")
             # print(label_map)
             for i, label in enumerate(label_ids):
-                print(logits[i])
-
                 temp_1 = []
                 temp_2 = []
                 for m, j in enumerate(label):
@@ -760,8 +754,12 @@ def trainRoberta(output_dir, train_batch_size, do_train, num_train_epochs, use_c
                     else:
                         temp_1.append(label_map[j])
                         temp_2.append(label_map[logits[i][m]])
-        print(y_true)
+
         report = classification_report(y_true, y_pred, digits=4)
+        flat_y_true = [i for j in y_true for i in j]
+        flat_y_pred = [i for j in y_pred for i in j]
+        cf_matrix.generate_confusion_matrix(flat_y_true, flat_y_pred, output_dir, roberta_model)
+
         logger.info("\n%s", report)
         output_eval_file = os.path.join(output_dir, "eval_results.txt")
         with open(output_eval_file, "w") as writer:

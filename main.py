@@ -9,6 +9,8 @@ from dobert import trainBERTModel, evaluation, pip_aggregation, Ner, prediction,
 from doroberta import trainROBERTAModel, evaluationRoberta, pip_aggregationRoberta, predictionRoberta,trainROBERTAGrid
 from doxlnet import trainxlnetModel, trainxlnetGrid
 from create_doccano_json import createDoccannoJSON
+from bs4 import BeautifulSoup
+import html2text
 
 def train_model(model, output_dir, useCuda, spacy_model_type = "1", grid_type = "1"):
     LABEL = ['LOCATION', 'CONTENT', 'TRIGGER', 'MODAL', 'ACTION']
@@ -108,7 +110,8 @@ def test_model_dataset(model_name):
 if __name__ == '__main__':
     useCuda = False
     spacy_model_type = "1"
-    action_type = input("Action type: (1. Train; 2. Dataset Test; 3. Manual Test; 4.Grid search): ")
+    action_type = input("Action type: (1. Train; 2. Dataset Test; 3. "
+                        "Manual Test; 4.Grid search; 5. Manual html file Test): ")
 
     if action_type == "":
         action_type = "3"
@@ -163,13 +166,11 @@ if __name__ == '__main__':
                     model_name = input("Model name to test: ")
 
                     if model_name == "":
-                        model_name = "scibert_grid_45_29.04.2022"
-
+                        model_name = "scibert_final"
                     text = input("Enter your testing text: ")
                     if text == "":
                         text = "The authors should correct the typos in the conclusion, those are visible within the conclusion in the lines: 22-28."
                     predictionResults = prediction(text, model_name)
-                    print(predictionResults)
                     createDoccannoJSON(text, predictionResults)
 
 
@@ -177,5 +178,39 @@ if __name__ == '__main__':
                     model_name=input("Model name to test: ")
                     text = input("Enter your testing text: ")
                     print(predictionRoberta(text, model_name))
+
+            elif action_type == str(5):
+                file_path = input("HTML file path with review comments: ")
+                if file_path == "":
+                    file_path = "/Users/miloscuculovic/Desktop/eval2.html"
+
+                model_name = input("Model name to test: ")
+                if model_name == "":
+                    model_name = "scibert_final"
+
+                file_object = open('doccano.json', 'a')
+
+
+                with open(file_path, 'r') as f:
+
+                    contents = f.read()
+                    soup = BeautifulSoup(contents, 'lxml')
+                    paragraphs = soup.findAll('p')
+
+                    for paragraph in paragraphs:
+                        if paragraph.string is not None:
+                            html2text.html2text.BODY_WIDTH = 0
+                            text = html2text.html2text(paragraph.string)
+                            if len(text) < 10:
+                                continue
+                            text = text.replace("\n", " ")
+                            predictionResults = prediction(text, model_name)
+
+                            doccano = createDoccannoJSON(text, predictionResults)
+                            if doccano != False:
+                                file_object.write(doccano)
+
+                file_object.close()
+
             else:
                 train_model("1", os.path.dirname(os.path.abspath(__file__)) + '/trained_models/1_default', useCuda, spacy_model_type)

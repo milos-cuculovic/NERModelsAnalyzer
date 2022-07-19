@@ -20,6 +20,7 @@ from transformers import XLNetTokenizer, XLNetForTokenClassification, XLNetConfi
 from transformers import pipeline, AutoModelForTokenClassification
 from transformers import pipeline, AutoModelForTokenClassification
 
+import cf_matrix
 import torch
 from tqdm import tqdm, trange
 from seqeval.metrics import classification_report
@@ -143,11 +144,10 @@ device = 'cpu'
 
 
 def trainxlnetModel(jsonfile, output_dir, nIter, use_cuda):
-    learning_rate = 2e-05
-    weight_decay = 0.001
+    learning_rate = 0.00025
+    weight_decay = 0.01
     warmup_proportion = 0.1
-
-    train_batch_size = 26
+    train_batch_size = 12
 
     # INITIAL
     #removEsc(os.path.abspath(jsonfile))
@@ -172,7 +172,7 @@ def trainxlnetModel(jsonfile, output_dir, nIter, use_cuda):
     else:
         device = "cpu"
 
-    trainxlnet(output_dir, train_batch_size, True, int(nIter), use_cuda, True, 1, learning_rate,
+    trainxlnet(output_dir, train_batch_size, False, int(nIter), use_cuda, True, 0, learning_rate,
                weight_decay, warmup_proportion)
 
 
@@ -365,7 +365,7 @@ def loopxlnethyperparam(output_dir, num_train_epochs, use_cuda):
         warm = listtool[2]
         trainbs = listtool[3]
 
-        #trainxlnet(output_dir, trainbs, True, num_train_epochs, use_cuda, True, k, learning, weight, warm)
+        trainxlnet(output_dir, trainbs, False, num_train_epochs, use_cuda, True, k, learning, weight, warm)
 
     compareauto(list_permutations, output_dir)
 
@@ -593,7 +593,8 @@ def trainxlnet(output_dir, train_batch_size, do_train, num_train_epochs, use_cud
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-    output_dir = output_dir + str(indexEval)
+    if indexEval != 0:
+        output_dir = output_dir + str(indexEval)
     if os.path.exists(output_dir) and os.listdir(output_dir) and do_train:
         raise ValueError("Output directory ({}) already exists and is not empty.".format(output_dir))
     if not os.path.exists(output_dir):
@@ -812,6 +813,10 @@ def trainxlnet(output_dir, train_batch_size, do_train, num_train_epochs, use_cud
                             lab_pred = 1
                         temp_2.append(label_map[lab_pred])
         report = classification_report(y_true, y_pred, digits=4)
+        flat_y_true = [i for j in y_true for i in j]
+        flat_y_pred = [i for j in y_pred for i in j]
+
+        cf_matrix.generate_confusion_matrix(flat_y_true, flat_y_pred, output_dir, xlnet_model)
         logger.info("\n%s", report)
         output_eval_file = os.path.join(output_dir, "eval_results.txt")
         with open(output_eval_file, "w") as writer:

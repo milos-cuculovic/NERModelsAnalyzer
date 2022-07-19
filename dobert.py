@@ -30,6 +30,8 @@ import torch.multiprocessing as mp
 import torch.nn as nn
 import torch.optim as optim
 from torch.nn.parallel import DistributedDataParallel as DDP
+
+import cf_matrix
 from bertconf import removEsc, sentenceMean, json_conll, trigConll, crossval, changeToOther
 import shutil
 from grid_search_results_print import generate_grid_search_results_print
@@ -45,7 +47,7 @@ trigger= ['why', 'on the contrary','what','however','either','while','rather','i
          'despite','accordingly','etc','always','what kind','unless','which one','if not','if so','even if',
          'not just','not only','besides','after all','generally','similar to','too','like']
 
-labelremove=[]
+labelremove=["CONTENT"]
 lab_list=["O", "B-LOCATION", "I-LOCATION", "B-TRIGGER", "I-TRIGGER",
                 "B-MODAL", "I-MODAL", "B-ACTION", "I-ACTION", "B-CONTENT", "I-CONTENT", "[CLS]", "[SEP]"]
 
@@ -190,10 +192,10 @@ device = 'cpu'
 
 def trainBERTModel(jsonfile, output_dir, nIter, use_cuda):
 
-    learning_rate       = 2e-05
-    weight_decay        = 0.001
+    learning_rate       = 0.0001
+    weight_decay        = 0.1
     warmup_proportion   = 0.1
-    train_batch_size    = 26
+    train_batch_size    = 8
 
     # # # INITIAL
     # removEsc(os.path.abspath(jsonfile))
@@ -226,8 +228,8 @@ def trainBERTModel(jsonfile, output_dir, nIter, use_cuda):
             lab_list.remove("I-"+i)
             lab_list.remove("B-"+i)
            
-    trainBert(output_dir, train_batch_size, True, int(nIter), use_cuda,
-              True, 1, learning_rate, weight_decay, warmup_proportion)
+    trainBert(output_dir, train_batch_size, False, int(nIter), use_cuda,
+              True, 0, learning_rate, weight_decay, warmup_proportion)
     
 def trainBERTGrid(jsonfile, output_dir, nIter, use_cuda):
     # # INITIAL
@@ -389,7 +391,7 @@ fp16 = 'store_true'
 gradient_accumulation_steps = 1
 seed = 42
 eval_batch_size = 8
-bert_model = "bert-base-cased"
+bert_model = "distilbert-base-cased"
 adam_epsilon = 1e-8
 max_grad_norm = 1.0
 max_seq_length = 128
@@ -400,10 +402,10 @@ b2 = 0.999
 import itertools
 
 def loopBerthyperparam(output_dir,num_train_epochs,use_cuda):
-    weightdecay         = [0.1, .01, .001, .0001]
-    learningrate        = [1e-5, 2.5e-5, 5e-5, 7.5e-5, 1e-4, 2.5e-5, 5e-4, 7.5e-4, 1e-3]
+    weightdecay         = [0.1, 0.01, 0.001, 0.0001]
+    learningrate        = [1e-5, 2.5e-5, 5e-5, 7.5e-5, 1e-4, 2.5e-4, 5e-4, 7.5e-4, 1e-3]
     warmupproportion    = [0.1]
-    trainbatchsize      = [128, 32, 24, 18, 12, 8]
+    trainbatchsize	= [128, 32, 24, 18, 12, 8]
     #weightdecay = [0.1, 0.01, 0.001, 0.0001]
     #learningrate = [0.01, 0.001, 0.0001, 0.00001]
     #warmupproportion = [0.1]
@@ -589,6 +591,7 @@ def pip_aggregation(model_name, new_model_name):
 
 
 def prediction(text, model_name):
+    text = text.replace("\n", " ")
     punctuation = ['"',"-","(",")",":"]
     model_path = os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + model_name
     mode = AutoModelForTokenClassification.from_pretrained(model_path)
@@ -602,17 +605,43 @@ def prediction(text, model_name):
     label_list = ["O", "B-LOCATION", "I-LOCATION", "B-TRIGGER", "I-TRIGGER",
                   "B-MODAL", "I-MODAL", "B-ACTION", "I-ACTION",  "[CLS]", "[SEP]"]
 
-    #label_list = ["B-LOCATION", "I-LOCATION", "B-TRIGGER", "I-TRIGGER",
-    #              "B-MODAL", "I-MODAL", "B-ACTION", "I-ACTION", "B-CONTENT", "I-CONTENT"]
-    #print(nlp_ner(t))
     prediction = []
     initial = True
     dicINT = {}
     result = nlp_ner(text)
+    return result
+    listWords = {}
+    for label in label_list:
+        if label not in ("O", "[CLS]", "[SEP]"):
+            listWords[label[2:]] = []
+
+
     previous_valid_label = ""
     previous_word_is_punctuation = False
     number_of_composed_words = 0
 
+    index_manual = 0
+
+    for dic in result:
+        label = dic['entity']
+        label_index = label.find("_") + 1
+        number = label[label_index:]
+        pos = int(number) - 1
+        label_name = label_list[pos]
+        word = dic['word']
+        index = dic['index']
+
+        if "##" in word or word in punctuation:
+            continue
+        else:
+            index_manual += 1
+
+        if label_name not in ("O", "[CLS]", "[SEP]"):
+            listWords[label_name[2:]].append(index_manual)
+
+
+
+    """
     for dic in result:
         label = dic['entity']
         label_index = label.find("_") + 1
@@ -626,7 +655,7 @@ def prediction(text, model_name):
             number_of_composed_words += 1
 
         if label_name not in ("O","[CLS]","[SEP]"):
-            if (label_name[2:] == previous_valid_label[2:] and previous_word_is_punctuation is True):
+            if (label_name[2:] == previous_valid_label[2:] or previous_word_is_punctuation is True):
                 if "##" in word:
                     word = word.lstrip('##')
                     dicINT["words"].append({"word":word, "index":index - number_of_composed_words})
@@ -647,12 +676,13 @@ def prediction(text, model_name):
             previous_valid_label = label_name
             previous_word_is_punctuation = False
         elif word in punctuation:
+            dicINT["words"] = []
             previous_word_is_punctuation = True
             dicINT["words"].append({"word":word, "index":index - number_of_composed_words})
 
     prediction.append(dicINT)
-
-    return prediction
+"""
+    return listWords
 
 
 
@@ -676,7 +706,8 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-    output_dir=output_dir+str(indexEval)
+    if indexEval != 0:
+        output_dir=output_dir+str(indexEval)
     if os.path.exists(output_dir) and os.listdir(output_dir) and do_train:
         raise ValueError("Output directory ({}) already exists and is not empty.".format(output_dir))
     if not os.path.exists(output_dir):
@@ -764,7 +795,9 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
         train_losses = []
         best_losses = 1
 
+        epoch = 0
         for _ in trange(int(num_train_epochs), desc="Epoch"):
+            epoch += 1
             tr_loss = 0
             nb_tr_examples, nb_tr_steps = 0, 0
             for step, batch in enumerate(tqdm(train_dataloader, desc="Iteration")):
@@ -793,17 +826,18 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
                     global_step += 1
 
             tr_losses = tr_loss / len(train_dataloader)
+            last_model = model.module if hasattr(model, 'module') else model
 
             if tr_losses < best_losses or 'model_to_save' not in locals():
+                print("Epoch -" + str(epoch) + ": Train losses - " + str(tr_losses) + " / Best losses - " + str(best_losses))
                 best_losses = tr_losses
                 model_to_save = model.module if hasattr(model, 'module') else model
 
-            if tr_losses < 0.05:
-                break
             train_losses.append(tr_losses)
             print(train_losses)
             print(len(train_losses))
 
+        model = model_to_save
         # Save a trained model and the associated configuration
         print(train_losses)
         print(len(train_losses))
@@ -824,6 +858,8 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
         shutil.copyfile(os.path.abspath("train.txt"),output_dir+"train.txt")  
         shutil.copyfile(os.path.abspath("valid.txt"),output_dir+"valid.txt")
         plt.savefig(output_dir + '/losses.png')
+
+        last_model.save_pretrained(output_dir + "/last")
         
     else:
         # Load a trained model and vocabulary that you have fine-tuned
@@ -835,7 +871,6 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
     model.to(device)
 
     if do_eval:
-        
         eval_examples = processor.get_dev_examples("")
         eval_features = convert_examples_to_features(eval_examples, label_list, max_seq_length, tokenizer)
         logger.info("***** Running evaluation *****")
@@ -905,7 +940,8 @@ def trainBert(output_dir, train_batch_size, do_train, num_train_epochs, use_cuda
         report = classification_report(y_true, y_pred, digits=4)
         flat_y_true = [i for j in y_true for i in j]
         flat_y_pred = [i for j in y_pred for i in j]
-        # cf_matrix.generate_plotly_cf_mat(flat_y_true, flat_y_pred, label_map, "confusion_matrix.html",  "./visualizations/")
+        cf_matrix.generate_confusion_matrix(flat_y_true, flat_y_pred, output_dir, bert_model)
+
         logger.info("\n%s", report)
         output_eval_file = os.path.join(output_dir, "eval_results.txt")
         with open(output_eval_file, "w") as writer:
