@@ -199,7 +199,7 @@ at O
 least to revise O
 the O
 abstract B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 the O
 conclusions B-LOCATION
 sections I-LOCATION
@@ -329,7 +329,7 @@ The B-LOCATION
 manuscript I-LOCATION
 entitled O
 “Transcriptional B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 metabolomic I-LOCATION
 analysis I-LOCATION
 of I-LOCATION
@@ -348,7 +348,7 @@ disease I-LOCATION
 association B-LOCATION
 with I-LOCATION
 local I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 systemic I-LOCATION
 immune I-LOCATION
 , O
@@ -552,7 +552,7 @@ of I-LOCATION
 its I-LOCATION
 simple I-LOCATION
 structure I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 low I-LOCATION
 manufacture I-LOCATION
 cost I-LOCATION
@@ -1540,7 +1540,7 @@ The B-LOCATION
 manuscript I-LOCATION
 entitled O
 „Flavonoids B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 Other I-LOCATION
 Phenolic I-LOCATION
 Compounds I-LOCATION
@@ -1549,7 +1549,7 @@ Medicinal I-LOCATION
 Plants I-LOCATION
 for I-LOCATION
 Pharmaceutical I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 Medical I-LOCATION
 Aspects I-LOCATION
 : O
@@ -2738,7 +2738,7 @@ Elaborate B-ACTION
 on O
 the O
 figures B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 explain B-ACTION
 the O
 main O
@@ -2863,7 +2863,7 @@ energy I-LOCATION
 88 I-LOCATION
 curtailment I-LOCATION
 rate I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 GFG I-LOCATION
 costs I-LOCATION
 , O
@@ -2994,7 +2994,7 @@ using I-LOCATION
 our I-LOCATION
 new I-LOCATION
 model I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 workflow I-LOCATION
 presented I-LOCATION
 in I-LOCATION
@@ -3820,7 +3820,7 @@ of I-LOCATION
 WS I-LOCATION
 , O
 WD B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 T I-LOCATION
 measured I-LOCATION
 in I-LOCATION
@@ -3832,7 +3832,7 @@ between I-LOCATION
 07 B-LOCATION
 / O
 2008 B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 31 I-LOCATION
 / O
 08 B-LOCATION
@@ -3847,7 +3847,7 @@ City I-LOCATION
 06 B-LOCATION
 / O
 2008 B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 31 I-LOCATION
 / O
 08 B-LOCATION
@@ -3862,7 +3862,7 @@ Zayed I-LOCATION
 06 B-LOCATION
 / O
 2007 B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 31 I-LOCATION
 / O
 08 B-LOCATION
@@ -3871,7 +3871,7 @@ and B-TRIGGER
 in I-LOCATION
 Al I-LOCATION
 Aradh I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 Bani I-LOCATION
 Yas I-LOCATION
 Island I-LOCATION
@@ -4132,7 +4132,7 @@ leave B-ACTION
 T2 B-LOCATION
 in O
 axis B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 remove B-ACTION
 explanation O
 , O
@@ -4215,7 +4215,7 @@ layouts I-LOCATION
 of I-LOCATION
 figures I-LOCATION
 13 I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 14 I-LOCATION
 that B-TRIGGER
 refer I-LOCATION
@@ -4326,7 +4326,7 @@ in O
 the O
 discussion B-LOCATION
 section I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 in O
 the O
 Table B-LOCATION
@@ -5153,7 +5153,7 @@ understand B-ACTION
 that“skin O
 pigment B-LOCATION
 melanin I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 / O
 or B-TRIGGER
 reduced I-LOCATION
@@ -5165,7 +5165,7 @@ coverage I-LOCATION
 required I-LOCATION
 by I-LOCATION
 religious I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 cultural I-LOCATION
 restrictions” I-LOCATION
 is O
@@ -5448,7 +5448,7 @@ y B-LOCATION
 . O
 93 B-LOCATION
 mm I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 y I-LOCATION
 = O
 5 B-LOCATION
@@ -5471,7 +5471,7 @@ a I-LOCATION
 relationship I-LOCATION
 between I-LOCATION
 dynamic I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 static I-LOCATION
 moduli I-LOCATION
 , O
@@ -5817,7 +5817,7 @@ Remark O
 the O
 ' O
 Materials B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 Methods I-LOCATION
 ' O
 section B-LOCATION
@@ -5841,7 +5841,7 @@ in O
 the O
 ' O
 Materials B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 Methods I-LOCATION
 ' O
 section B-LOCATION
@@ -6498,7 +6498,7 @@ this O
 style… O
 Figure B-LOCATION
 4 I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 that B-TRIGGER
 is O
 it…“Figure O
@@ -6921,7 +6921,7 @@ end I-LOCATION
 of O
 the B-LOCATION
 results I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 discussion I-LOCATION
 section I-LOCATION
 , O
@@ -7027,7 +7027,7 @@ cannot I-LOCATION
 produce I-LOCATION
 vitamin I-LOCATION
 E I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 for I-LOCATION
 this I-LOCATION
 reason I-LOCATION
@@ -7056,7 +7056,7 @@ equally I-LOCATION
 to I-LOCATION
 the I-LOCATION
 preparation I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 writing I-LOCATION
 of I-LOCATION
 this I-LOCATION
@@ -7067,7 +7067,7 @@ authors I-LOCATION
 357 I-LOCATION
 have I-LOCATION
 read I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 agreed I-LOCATION
 to I-LOCATION
 the I-LOCATION
@@ -7801,7 +7801,7 @@ Lines B-LOCATION
 If B-LOCATION
 a I-LOCATION
 siting I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 sizing I-LOCATION
 scheme I-LOCATION
 has I-LOCATION
@@ -7883,7 +7883,7 @@ shown B-ACTION
 in O
 a O
 figure B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 their O
 individual O
 requirements O
@@ -8346,7 +8346,7 @@ panels I-LOCATION
 in O
 Figures B-LOCATION
 5 I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 6 I-LOCATION
 should B-MODAL
 be O
@@ -8412,7 +8412,7 @@ mentioned B-ACTION
 in O
 the O
 text B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 in O
 the O
 caption B-LOCATION
@@ -8522,7 +8522,7 @@ antioxidants I-LOCATION
 in I-LOCATION
 meat I-LOCATION
 preparation I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 in I-LOCATION
 meat I-LOCATION
 products” I-LOCATION
@@ -8634,7 +8634,7 @@ quantity O
 The O
 ' O
 Results B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 discussion I-LOCATION
 ' O
 section O
@@ -8653,7 +8653,7 @@ in O
 the O
 ' O
 Results B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 discussion I-LOCATION
 ' O
 section O
@@ -8707,7 +8707,7 @@ manuscript B-LOCATION
 Revise B-ACTION
 the O
 manuscript B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 avoid B-ACTION
 informal O
 expressions O
@@ -9050,7 +9050,7 @@ Polymers O
 The O
 ' O
 Results B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 discussion I-LOCATION
 ' O
 section B-LOCATION
@@ -9163,7 +9163,7 @@ performance I-LOCATION
 , O
 green B-LOCATION
 taxation I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 economic I-LOCATION
 growth I-LOCATION
 , O
@@ -9511,7 +9511,7 @@ mortars O
 . O
 
 Results B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 Discussion I-LOCATION
 : O
 The O
@@ -9642,7 +9642,7 @@ explain B-ACTION
 in O
 the O
 paper B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 justify B-ACTION
 if B-TRIGGER
 the O
@@ -9876,7 +9876,7 @@ of I-LOCATION
 the I-LOCATION
 solution I-LOCATION
 accuracy I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 of I-LOCATION
 the I-LOCATION
 convergence I-LOCATION
@@ -10830,7 +10830,7 @@ text O
 under O
 the O
 ‘results B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 discussion’ I-LOCATION
 is O
 unnecessarily B-ACTION
@@ -10839,11 +10839,11 @@ wordy I-ACTION
 Shorten B-ACTION
 the B-LOCATION
 text I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 minimize B-ACTION
 the B-LOCATION
 discussion I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 reference B-ACTION
 to I-ACTION
 literature I-ACTION
@@ -10853,7 +10853,7 @@ section B-LOCATION
 as O
 the O
 ‘results B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 discussion’ I-LOCATION
 should B-MODAL
 focus B-ACTION
@@ -11037,7 +11037,7 @@ Lines O
 the O
 ' O
 Motivation B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 state I-LOCATION
 of I-LOCATION
 art I-LOCATION
@@ -11061,7 +11061,7 @@ simple I-LOCATION
 , O
 complex B-LOCATION
 models I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 systems I-LOCATION
 dynamics I-LOCATION
 , O
@@ -11153,7 +11153,7 @@ studies I-LOCATION
 evaluating I-LOCATION
 attractive I-LOCATION
 alternatives I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 efficient I-LOCATION
 energy I-LOCATION
 management I-LOCATION
@@ -12074,7 +12074,7 @@ Remark O
 the O
 ' O
 Discussion B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 concluding I-LOCATION
 remarks I-LOCATION
 ' O
@@ -13002,7 +13002,7 @@ background O
 Figures8 B-LOCATION
 , O
 9 B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 10 I-LOCATION
 : O
 cannot B-MODAL
@@ -13040,7 +13040,7 @@ Figures B-LOCATION
 6 I-LOCATION
 , O
 7 B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 11 I-LOCATION
 to O
 aid O
@@ -13211,7 +13211,7 @@ sentence O
 In O
 the O
 materials B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 methods I-LOCATION
 section I-LOCATION
 , O
@@ -13449,7 +13449,7 @@ both B-TRIGGER
 in O
 the O
 text B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 on O
 the O
 figures B-LOCATION
@@ -13485,7 +13485,7 @@ manuscript B-LOCATION
 entitled O
 “Technological B-LOCATION
 quality I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 oxidative I-LOCATION
 changes I-LOCATION
 of I-LOCATION
@@ -13499,7 +13499,7 @@ with I-LOCATION
 Moringa I-LOCATION
 oleifera I-LOCATION
 leaf I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 root I-LOCATION
 powder” I-LOCATION
 presents O
@@ -13713,7 +13713,7 @@ by I-LOCATION
 using I-LOCATION
 the I-LOCATION
 quantity I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 quality I-LOCATION
 approaches” I-LOCATION
 – O
@@ -13751,7 +13751,7 @@ to I-LOCATION
 its I-LOCATION
 simple I-LOCATION
 management I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 mass I-LOCATION
 manipulation I-LOCATION
 . O
@@ -14173,7 +14173,7 @@ details O
 associated O
 with O
 materials B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 methods I-LOCATION
 are O
 needed B-ACTION
@@ -14209,7 +14209,7 @@ were I-LOCATION
 conducted I-LOCATION
 . O
 ” B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 nothing O
 more O
 ) O
@@ -14447,7 +14447,7 @@ References O
 ) O
 Figure B-LOCATION
 1 I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 2 I-LOCATION
 : O
 All O
@@ -14541,7 +14541,7 @@ predicted O
 
 Figure B-LOCATION
 10 I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 more O
 : O
 Clarify“Standardized O
@@ -14801,7 +14801,7 @@ the I-LOCATION
 model I-LOCATION
 we I-LOCATION
 chose I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 that B-TRIGGER
 there I-LOCATION
 is I-LOCATION
@@ -14880,7 +14880,7 @@ since B-TRIGGER
 title B-LOCATION
 , O
 abstract B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 keywords B-LOCATION
 must B-MODAL
 have B-ACTION
@@ -15980,7 +15980,7 @@ from O
 title B-LOCATION
 : O
 “A” B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 not O
 “the”… O
 
@@ -16030,7 +16030,7 @@ excessive O
 . O
 
 Results B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 Discussion I-LOCATION
 : O
 It O
@@ -16163,7 +16163,7 @@ D B-LOCATION
 concentration I-LOCATION
 in I-LOCATION
 maternal I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 umbilical I-LOCATION
 cord I-LOCATION
 blood I-LOCATION
@@ -16334,7 +16334,7 @@ evaluation O
 
 Figure B-LOCATION
 8 I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 more O
 
 Author O
@@ -16447,7 +16447,7 @@ included B-ACTION
 in O
 the O
 abstract B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 mainly O
 at O
 the O
@@ -16519,7 +16519,7 @@ ft” B-LOCATION
 or“ft O
 / O
 sec” B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 is O
 it O
 sec O
@@ -16612,7 +16612,7 @@ values O
 The O
 ' O
 Results B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 Discussion I-LOCATION
 ' O
 section O
@@ -16631,7 +16631,7 @@ in O
 the O
 ' O
 Results B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 Discussion I-LOCATION
 ' O
 section O
@@ -16671,7 +16671,7 @@ In O
 the O
 ' O
 Results B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 Discussion I-LOCATION
 ' O
 section O
@@ -16729,7 +16729,7 @@ of I-LOCATION
 the I-LOCATION
 ' O
 Results B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 Discussion I-LOCATION
 ' O
 section B-LOCATION
@@ -17114,7 +17114,7 @@ relaxation I-LOCATION
 ] O
 , O
 branch B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 bound I-LOCATION
 ( O
 combined B-LOCATION
@@ -17352,7 +17352,7 @@ is O
 on O
 axes B-LOCATION
 OX I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 OY I-LOCATION
 ? O
 
@@ -17467,7 +17467,7 @@ time… O
 
 In O
 Figures B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 relating O
 axis O
 information O
@@ -18075,7 +18075,7 @@ analysis O
 Or“Perkins O
 , O
 Kern B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 Nordren” I-LOCATION
 
 27 O
@@ -18083,7 +18083,7 @@ Nordren” I-LOCATION
 In O
 lines B-LOCATION
 370 I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 371 I-LOCATION
 the O
 units O
@@ -18542,7 +18542,7 @@ MDEA B-LOCATION
 Compared B-LOCATION
 with I-LOCATION
 MEA I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 DEA I-LOCATION
 , O
 MDEA B-LOCATION
@@ -18563,7 +18563,7 @@ can I-LOCATION
 remove I-LOCATION
 most I-LOCATION
 CO2 I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 H2S I-LOCATION
 from I-LOCATION
 the I-LOCATION
@@ -18584,7 +18584,7 @@ Thirdly B-LOCATION
 the B-LOCATION
 foaming I-LOCATION
 tendency I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 corrosiveness I-LOCATION
 of I-LOCATION
 MDEA I-LOCATION
@@ -18593,7 +18593,7 @@ lower I-LOCATION
 compared I-LOCATION
 to I-LOCATION
 MEA I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 DEA I-LOCATION
 . O
 Last B-LOCATION
@@ -19355,7 +19355,7 @@ data O
 ( O
 including O
 equations B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 models B-LOCATION
 ) O
 are O
@@ -19377,7 +19377,7 @@ data O
 in O
 this B-LOCATION
 section I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 abstract… O
 
 Compare B-ACTION
@@ -19973,7 +19973,7 @@ Organization I-LOCATION
 for I-LOCATION
 Economic I-LOCATION
 Cooperation I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 Development I-LOCATION
 ( O
 OECD B-LOCATION
@@ -20001,7 +20001,7 @@ decoupling B-LOCATION
 into B-LOCATION
 absolute I-LOCATION
 decoupling I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 relative I-LOCATION
 97 I-LOCATION
 decoupling I-LOCATION
@@ -20158,7 +20158,7 @@ After B-LOCATION
 user I-LOCATION
 458 I-LOCATION
 evaluation I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 objective I-LOCATION
 comparison I-LOCATION
 , O
@@ -20202,13 +20202,13 @@ the I-LOCATION
 saving I-LOCATION
 of I-LOCATION
 human I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 material I-LOCATION
 resources I-LOCATION
 , O
 the B-LOCATION
 preservation I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 sustainable I-LOCATION
 use I-LOCATION
 of I-LOCATION
@@ -20231,7 +20231,7 @@ axis O
 in O
 Figure B-LOCATION
 15 I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 more O
  as O
 example O
@@ -21068,7 +21068,7 @@ in O
 annotating B-ACTION
 the O
 tables B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 figures B-LOCATION
 , O
 i O
@@ -21133,7 +21133,7 @@ Material I-LOCATION
 . O
 The O
 figure B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 table I-LOCATION
 captions I-LOCATION
 are O
@@ -21464,7 +21464,7 @@ rather B-TRIGGER
 presented B-ACTION
 in O
 Materials B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 Methods I-LOCATION
 Section I-LOCATION
 
@@ -21902,12 +21902,12 @@ The O
 position O
 of O
 Tables B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 Figures B-LOCATION
 . O
 The O
 Tables B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 Figures B-LOCATION
 within O
 the O
@@ -22071,7 +22071,7 @@ page O
 between B-LOCATION
 lines I-LOCATION
 31 I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 32 I-LOCATION
 , O
 at O
@@ -22081,7 +22081,7 @@ between B-LOCATION
 the I-LOCATION
 lines I-LOCATION
 118 I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 121 I-LOCATION
 . O
 
@@ -22142,7 +22142,7 @@ Response B-LOCATION
 : O
 Figure B-LOCATION
 2 I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 3 I-LOCATION
 is B-ACTION
 quite I-ACTION
@@ -22207,7 +22207,7 @@ inside“ O
 Fig B-LOCATION
 . O
 4 B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 Fig B-LOCATION
 . O
 5 B-LOCATION
@@ -22693,7 +22693,7 @@ Fig B-LOCATION
 6 B-LOCATION
 . O
 b B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 Fig B-LOCATION
 . O
 7 B-LOCATION
@@ -22874,7 +22874,7 @@ ultra I-LOCATION
 - O
 processed B-LOCATION
 foods I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 nutritional I-LOCATION
 profile I-LOCATION
 in I-LOCATION
@@ -22929,7 +22929,7 @@ the O
 Discussion B-LOCATION
 ' O
 section B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 of O
 the O
 manuscript B-LOCATION
@@ -22988,7 +22988,7 @@ NAF” I-LOCATION
 3 B-LOCATION
 . O
 Results B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 Discussion I-LOCATION
 ) O
 we“jump” O
@@ -24191,7 +24191,7 @@ example O
 : O
 Table B-LOCATION
 12 I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 more O
 ) O
 
@@ -25170,7 +25170,7 @@ introduced O
 on O
 page B-LOCATION
 1 I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 never O
 used O
 again B-TRIGGER
@@ -25329,7 +25329,7 @@ done I-LOCATION
 ] O
 , O
 ” B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 now O
 include B-ACTION
 the O
@@ -25342,7 +25342,7 @@ that B-TRIGGER
 sentence I-LOCATION
 states“few O
 researches” B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 you O
 present B-ACTION
 ONE O
@@ -25404,7 +25404,7 @@ title O
 ' O
 Optimum B-LOCATION
 design I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 singularity I-LOCATION
 analysis I-LOCATION
 of I-LOCATION
@@ -25727,7 +25727,7 @@ corrections O
 All O
 the O
 figures B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 tables B-LOCATION
 are O
 of O
@@ -25930,9 +25930,9 @@ expectation I-LOCATION
 with I-LOCATION
 its I-LOCATION
 behaviors I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 results I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 to I-LOCATION
 still I-LOCATION
 provide I-LOCATION
@@ -25983,7 +25983,7 @@ given I-LOCATION
 trustworthy I-LOCATION
 attributes’ I-LOCATION
 values I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 their I-LOCATION
 weight I-LOCATION
 values I-LOCATION
@@ -25995,13 +25995,13 @@ a I-LOCATION
 basis I-LOCATION
 for I-LOCATION
 guiding I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 improving I-LOCATION
 the I-LOCATION
 trustworthiness I-LOCATION
 of I-LOCATION
 design I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 implementation I-LOCATION
 of I-LOCATION
 software I-LOCATION
@@ -26041,7 +26041,7 @@ established I-LOCATION
 , O
 including B-LOCATION
 questionnaires I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 statistical I-LOCATION
 analysis I-LOCATION
 [ O
@@ -26071,7 +26071,7 @@ learning I-LOCATION
 , O
 maximum B-LOCATION
 entropy I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 grey I-LOCATION
 decision I-LOCATION
 - O
@@ -26381,7 +26381,7 @@ the I-LOCATION
 differences I-LOCATION
 in I-LOCATION
 activity I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 toxicity I-LOCATION
 of I-LOCATION
 both B-TRIGGER
@@ -26740,7 +26740,7 @@ Revise“ O
 Specimen B-LOCATION
 failure I-LOCATION
 mode I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 stress I-LOCATION
 - O
 strain B-LOCATION
@@ -27129,7 +27129,7 @@ data O
 . O
 The B-LOCATION
 text I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 the B-LOCATION
 figure I-LOCATION
 captions I-LOCATION
@@ -27328,7 +27328,7 @@ results O
 . O
 
 Materials B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 methods I-LOCATION
 : O
 There O
@@ -27347,7 +27347,7 @@ both B-TRIGGER
 in O
 the O
 text B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 in O
 Figure B-LOCATION
 1 I-LOCATION
@@ -27419,7 +27419,7 @@ g O
 “legumes B-LOCATION
 , O
 nuts B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 seeds” I-LOCATION
 seems O
 to O
@@ -27470,7 +27470,7 @@ indicated B-ACTION
 in O
 the O
 Materials B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 methods I-LOCATION
 section I-LOCATION
 . O
@@ -27479,7 +27479,7 @@ section I-LOCATION
 The O
 ' O
 Results B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 discussion I-LOCATION
 ' O
 subsection B-LOCATION
@@ -27756,7 +27756,7 @@ samples O
 . O
 In O
 abstract B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 text B-LOCATION
 again B-TRIGGER
 , O
@@ -28157,7 +28157,7 @@ translate O
 findings O
 in O
 abstract B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 conclusions B-LOCATION
 section I-LOCATION
 , O
@@ -28263,7 +28263,7 @@ Forecasting I-LOCATION
 Using I-LOCATION
 Hybrid I-LOCATION
 ARIMA I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 Soft I-LOCATION
 Computing I-LOCATION
 Approaches I-LOCATION
@@ -28382,7 +28382,7 @@ supplementation I-LOCATION
 on I-LOCATION
 haematological I-LOCATION
 values I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 muscle I-LOCATION
 recovery I-LOCATION
 in I-LOCATION
@@ -28409,7 +28409,7 @@ use B-ACTION
 abbreviation O
 in O
 abstract B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 then O
 here“United O
 States O
@@ -28603,7 +28603,7 @@ at I-LOCATION
 a I-LOCATION
 constant I-LOCATION
 speed I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 keep I-LOCATION
 the I-LOCATION
 same I-LOCATION
@@ -28664,7 +28664,7 @@ on O
 the O
 axes B-LOCATION
 OX I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 OY I-LOCATION
 . O
 Add B-ACTION
@@ -28900,7 +28900,7 @@ missing I-ACTION
 . O
 The O
 abstract B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 the O
 conclusion B-LOCATION
 sections I-LOCATION
@@ -29080,7 +29080,7 @@ top B-LOCATION
 - O
 left B-LOCATION
 corner I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 below I-LOCATION
 the I-LOCATION
 panel I-LOCATION
@@ -29220,7 +29220,7 @@ the I-LOCATION
 dietary I-LOCATION
 inflammatory I-LOCATION
 index I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 markers I-LOCATION
 of I-LOCATION
 type I-LOCATION
@@ -29507,7 +29507,7 @@ value I-ACTION
 [ O
 Line B-LOCATION
 128 I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 line I-LOCATION
 134 I-LOCATION
 ] O
@@ -29722,7 +29722,7 @@ g B-LOCATION
 ) O
 , O
 fires B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 explosions I-LOCATION
 ( O
 [ O
@@ -30689,7 +30689,7 @@ stated O
 that B-TRIGGER
 “All B-LOCATION
 materials I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 procedures I-LOCATION
 used I-LOCATION
 in I-LOCATION
@@ -30706,7 +30706,7 @@ Use I-LOCATION
 of I-LOCATION
 Human I-LOCATION
 Subjects I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 met I-LOCATION
 the I-LOCATION
 criteria I-LOCATION
@@ -31280,7 +31280,7 @@ In O
 the O
 ' O
 Materials B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 Methods I-LOCATION
 ' O
 section B-LOCATION
@@ -31454,7 +31454,7 @@ coherence O
 faced O
 to O
 title B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 abstract B-LOCATION
 . O
 Example O
@@ -31719,7 +31719,7 @@ application I-LOCATION
 Conclusion B-LOCATION
 , O
 Acknowledgements B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 References B-LOCATION
 . O
 According O
@@ -32563,7 +32563,7 @@ inserted B-ACTION
 in“7 O
 Numerical B-LOCATION
 simulation” I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 somehow O
 it O
 loses O
@@ -32919,7 +32919,7 @@ matrix I-LOCATION
 , O
 natural B-LOCATION
 fracture I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 network I-LOCATION
 fracture I-LOCATION
 systems I-LOCATION
@@ -32960,11 +32960,11 @@ system I-LOCATION
 exist B-LOCATION
 only I-LOCATION
 matrix I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 natural I-LOCATION
 fracture I-LOCATION
 systems I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 exist I-LOCATION
 three I-LOCATION
 systems I-LOCATION
@@ -33628,7 +33628,7 @@ of I-LOCATION
 renewable I-LOCATION
 energy I-LOCATION
 consumption I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 economic I-LOCATION
 growth I-LOCATION
 . O
@@ -33650,7 +33650,7 @@ in O
 the O
 ' O
 Conclusion B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 Policy I-LOCATION
 Implications I-LOCATION
 ' O
@@ -33680,7 +33680,7 @@ in O
 the O
 ' O
 Materials B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 Methods I-LOCATION
 ' O
 section O
@@ -33850,7 +33850,7 @@ at O
 least O
 a O
 results B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 discussion I-LOCATION
 section… O
 
@@ -33944,7 +33944,7 @@ year O
 The O
 ' O
 Results B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 Discussion I-LOCATION
 ' O
 section B-LOCATION
@@ -34413,7 +34413,7 @@ designations O
 in O
 Table B-LOCATION
 1 I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 2 I-LOCATION
 are B-ACTION
 not I-ACTION
@@ -34488,7 +34488,7 @@ relevance O
 The O
 ' O
 Materials B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 Methods I-LOCATION
 ' O
 section B-LOCATION
@@ -35155,7 +35155,7 @@ mentioned O
 in O
 the O
 results B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 discussion I-LOCATION
 section I-LOCATION
 . O
@@ -35224,7 +35224,7 @@ both B-TRIGGER
 Fig B-LOCATION
 . O
 2a B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 4a B-LOCATION
 . O
 
@@ -35489,7 +35489,7 @@ regarding O
 the O
 ' O
 Materials B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 Methods I-LOCATION
 ' O
 section B-LOCATION
@@ -35573,7 +35573,7 @@ in O
 the O
 ' O
 Materials B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 Methods I-LOCATION
 ' O
 section B-LOCATION
@@ -35715,7 +35715,7 @@ all O
 clear B-ACTION
 in O
 title B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 abstract B-LOCATION
 ? O
 
@@ -35737,7 +35737,7 @@ Consequently O
 move B-ACTION
 Figure B-LOCATION
 2 I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 the O
 corresponding O
 discussions O
@@ -35855,7 +35855,7 @@ diet I-LOCATION
 , O
 NO B-LOCATION
 homeostasis I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 vasodilation I-LOCATION
 , O
 and B-TRIGGER
@@ -35942,7 +35942,7 @@ Lines O
 the O
 ' O
 Data B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 method I-LOCATION
 ' O
 section B-LOCATION
@@ -35969,7 +35969,7 @@ in O
 the O
 ' O
 Data B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 method I-LOCATION
 ' O
 section B-LOCATION
@@ -36081,7 +36081,7 @@ in O
 the O
 ' O
 Data B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 method I-LOCATION
 ' O
 section B-LOCATION
@@ -36562,7 +36562,7 @@ future I-LOCATION
 oriented B-LOCATION
 energy I-LOCATION
 policies I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 technologies I-LOCATION
 from I-LOCATION
 the I-LOCATION
@@ -36578,7 +36578,7 @@ based B-LOCATION
 identification I-LOCATION
 of I-LOCATION
 topics I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 experts I-LOCATION
 ' O
 , O
@@ -36933,7 +36933,7 @@ format O
 in O
 the O
 text B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 figures B-LOCATION
 . O
 
@@ -37448,7 +37448,7 @@ presented O
 previously O
 in O
 tables B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 in O
 the O
 text B-LOCATION
@@ -37754,7 +37754,7 @@ Figures B-LOCATION
 1 I-LOCATION
 - O
 3 B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 5 B-LOCATION
 D I-LOCATION
 - O
@@ -37791,10 +37791,10 @@ Vitamin I-LOCATION
 D I-LOCATION
 in I-LOCATION
 Fertility I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 during I-LOCATION
 Pregnancy I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 Lactation I-LOCATION
 : O
 A B-LOCATION
@@ -38024,7 +38024,7 @@ the I-LOCATION
 remobilization I-LOCATION
 of I-LOCATION
 light I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 heavy I-LOCATION
 oils I-LOCATION
 realized I-LOCATION
@@ -38162,7 +38162,7 @@ presented O
 in O
 the O
 manuscript B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 prepare B-ACTION
 the O
 readers O
@@ -38244,7 +38244,7 @@ Brazilian I-LOCATION
 wind I-LOCATION
 energy I-LOCATION
 policy I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 save I-LOCATION
 billions I-LOCATION
 of I-LOCATION
@@ -38508,7 +38508,7 @@ from O
 the O
 ' O
 Materials B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 Methods I-LOCATION
 ' O
 section B-LOCATION
@@ -38566,7 +38566,7 @@ the I-LOCATION
 wind I-LOCATION
 energy I-LOCATION
 potential I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 characteristics I-LOCATION
 , O
 three B-LOCATION
@@ -38580,7 +38580,7 @@ Lefko B-LOCATION
 a B-LOCATION
 , O
 Girne B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 Gazima I-LOCATION
 ? O
 usa B-LOCATION
@@ -39299,7 +39299,7 @@ figure O
 . O
 
 Results B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 discussion I-LOCATION
 : O
 If B-TRIGGER
@@ -39701,7 +39701,7 @@ reported B-ACTION
 . O
 Figure B-LOCATION
 7 I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 the B-LOCATION
 final I-LOCATION
 paragraph I-LOCATION
@@ -39936,7 +39936,7 @@ study O
 
 Avoid“many O
 scholars” B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 then O
 2 O
 references… O
@@ -39949,7 +39949,7 @@ before O
 units O
 in O
 axis B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 legends B-LOCATION
 , O
 check B-ACTION
@@ -40216,7 +40216,7 @@ chapter B-LOCATION
 convenience I-LOCATION
 , O
 nutrition B-LOCATION
-and B-TRIGGER
+and I-LOCATION
 taste” I-LOCATION
 ) O
 and B-TRIGGER

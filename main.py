@@ -1,216 +1,119 @@
 import os
 
-from dospacy import trainSpacyModel
-from dospacy import testSpacyModel
-from dospacy import evaluateSpacy
-from dobilstm import trainBiLSTMModel
 from datetime import datetime
-from dobert import trainBERTModel, evaluation, pip_aggregation, Ner, prediction,trainBERTGrid
-from doroberta import trainROBERTAModel, evaluationRoberta, pip_aggregationRoberta, predictionRoberta,trainROBERTAGrid
-from doxlnet import trainxlnetModel, trainxlnetGrid
+from dobert import train_bert_based_models, grid_bert_based_models, test_bert_based_models, prediction_bert_based_models
+from doxlnet import train_xlnet_model, grid_xlnet_model, test_xlnet_model
 from create_doccano_json import createDoccannoJSON
 from bs4 import BeautifulSoup
 import html2text
+from random import choice
+from string import ascii_lowercase
 
-def train_model(model, output_dir, useCuda, spacy_model_type = "1", grid_type = "1"):
-    LABEL = ['LOCATION', 'CONTENT', 'TRIGGER', 'MODAL', 'ACTION']
+ROOT_DIR = os.path.dirname(os.path.abspath('data.json'))
 
-    ROOT_DIR = os.path.dirname(os.path.abspath('data.json'))
-    path_train_data_bert = os.path.join(ROOT_DIR, 'train.json')
-    path_train_data = os.path.join(ROOT_DIR, 'train_temp_test.spacy')
-    path_valid_data = os.path.join(ROOT_DIR, 'valid_temp_test.spacy')
-
-    dropout = 1e-5
-    nIter   = 1
-
+def train(modelType, modelPath, useCuda, nIterations):
     now = datetime.now()
     current_time = now.strftime("%H:%M:%S")
     print("Start time = ", current_time)
 
-    if model == str(1):
-        nlp, plt = trainSpacyModel(path_train_data, path_valid_data, LABEL, dropout, nIter, spacy_model_type)
-    elif model == str(2):
-        nlp = trainBiLSTMModel(path_train_data, LABEL, dropout, nIter, output_dir)
-    elif model == str(3):
-        trainBERTModel(path_train_data_bert, output_dir, nIter, useCuda)
-        exit()
-    elif model==str(4):
-        print(grid_type)
-        if grid_type=="1":
-            trainBERTGrid(path_train_data_bert, output_dir, nIter, useCuda)
-        elif grid_type=="2":
-            trainROBERTAGrid(path_train_data_bert, output_dir, nIter, useCuda)
-        elif grid_type=="3":
-            trainxlnetGrid(path_train_data_bert, output_dir, nIter, useCuda)
-        exit()
-    elif model==str(5):
-        trainROBERTAModel(path_train_data_bert, output_dir, nIter, useCuda)
-        exit()
-    elif model == str(6):
-        trainxlnetModel(path_train_data_bert, output_dir, nIter, useCuda)
-        exit()
-
+    if(modelType in ["bert-base-cased", "allenai/scibert_scivocab_cased", "roberta-base", "xlnet-base-cased"]):
+        train_bert_based_models(modelType, modelPath, useCuda, nIterations)
     else:
-        exit("Wrong model selection")
+        train_xlnet_model(modelPath, useCuda, nIterations)
 
     now = datetime.now()
     current_time = now.strftime("%H:%M:%S")
     print("End time = ", current_time)
 
-    # Save the trained Model
-    nlp.to_disk(output_dir)
-    plt.xlabel('Epochs')
-    plt.ylabel('Loss')
-    plt.savefig(output_dir + '/losses_graph.png')
-
-
-def test_model_manually(model_path):
-    number_of_testing_examples = input("Enter the number of testing examples: ")
-    testSpacyModel(model_path, number_of_testing_examples)
-
-def test_model_dataset(model_name):
-    choice = input("1: BERT; 2:SpaCy; 3:RoBerta : ")
-    if choice == "1" or choice=="3":
-        useCuda = input("Use Cuda? (y or n, default n): ")
-        if useCuda == "y":
-            useCuda = True
-        else:
-            useCuda = False
-        if choice == "1":
-            evaluation(model_name, useCuda)
-        else:
-            evaluationRoberta(model_name, useCuda)
+def grid_search(modelType, modelPath, useCuda, nIterations):
+    if (modelType in ["1", "2", "3", "4"]):
+        grid_bert_based_models(modelType, modelPath, useCuda, nIterations)
     else:
-        #model_path = os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + model_name
-        #LABEL = ['LOCATION', 'CONTENT', 'TRIGGER', 'MODAL', 'ACTION']
-        LABEL = ['LOCATION', 'TRIGGER', 'MODAL', 'ACTION']
-        ROOT_DIR = os.path.dirname(os.path.abspath('data.json'))
-        path_test_data = os.path.join(ROOT_DIR, 'valid_temp_test.spacy')
-        results = evaluateSpacy(model_name, path_test_data, LABEL)
-        print("Entity\t\tPrecision\tRecall\tF-score")
-        for result in results['ents_per_type']:
-            if(result == "LOCATION"):
-                print(
-                    "{:}\t{:0.4f}\t{:0.4f}\t{:0.4f}".
-                        format(result, results['ents_per_type'][result]['p'], results['ents_per_type'][result]['r'],
-                               results['ents_per_type'][result]['f'])
-                )
-            else:
-                print(
-                    "{:}\t\t{:0.4f}\t{:0.4f}\t{:0.4f}".
-                        format(result, results['ents_per_type'][result]['p'], results['ents_per_type'][result]['r'], results['ents_per_type'][result]['f'])
-                )
-        print()
-        print(
-            "{:}\t\t{:0.4f}\t{:0.4f}\t{:0.4f}".
-                format("TOTAL", results['ents_p'], results['ents_r'], results['ents_f'])
-        )
+        grid_xlnet_model(modelPath, useCuda, nIterations)
+
+def test_model_dataset(modelType):
+    if (modelType in ["1", "2", "3", "4"]):
+        test_bert_based_models(modelType, modelPath)
+    else:
+        test_xlnet_model(modelType, modelPath)
 
 
 if __name__ == '__main__':
-    useCuda = False
-    spacy_model_type = "1"
-    action_type = input("Action type: (1. Train; 2. Dataset Test; 3. "
-                        "Manual Test; 4.Grid search; 5. Manual html file Test): ")
+    actionType = input("Action type: (1. Train; 2.Grid search; 3. Dataset Test; 4. "
+                        "Manual Test; ; 5. Manual html file Test): ")
+    if actionType == "":
+        actionType = "3"
 
-    if action_type == "":
-        action_type = "3"
-
-    if action_type == str(1):
-        model = input("Model (1. spaCy; 2. Bi-LSTM; 3. BERT; 4. BERT-pip_aggregation, 5.Roberta, 6: xlnet): ")
-        modelFile = input("Enter the Model name to save: ")
-        if model == "4":
-            pip_aggregation(modelFile, modelFile + "_pip_aggregation")
-            exit()
-        if model == "3" or model == "4" :
-            useCuda = input("Use Cuda? (y or n, default n): ")
-            if useCuda == "y":
-                useCuda = True
-            else:
-                useCuda = False
-        if model == "5" or model=="6":
-            useCuda = input("Use Cuda? (y or n, default n): ")
-            if useCuda == "y":
-                useCuda = True
-            else:
-                useCuda = False
-        if model == "1":
-            spacy_model_type = input("1. Blank; 2. en_core_web_trf; 3. en_core_web_sm (Default 1): ")
-        train_model(model, os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + modelFile, useCuda, spacy_model_type)
-    elif action_type==str(4):
-        grid_type = input("Grid type: (1. Bert; 2. RoBerta; 3. XLNet): ")
-        modelFile = input("Enter the Model name to save: ")
-        useCuda = input("Use Cuda? (y or n, default n): ")
-        if useCuda == "y":
-                useCuda = True
-        else:
-                useCuda = False
-        train_model(action_type, os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + modelFile, useCuda, "1", grid_type)
+    modelTypeID = input("1. bert-base-cased; 2. scibert_scivocab_cased; 3. roberta-base; 4. distilbert-base-cased; 5. xlnet-base-cased: ")
+    if modelTypeID == "1":
+        modelType = "bert-base-cased"
+    elif modelTypeID == "2":
+        modelType = "allenai/scibert_scivocab_cased"
+    elif modelTypeID == "3":
+        modelType = "roberta-base"
+    elif modelTypeID == "4":
+        modelType = "distilbert-base-cased"
+    elif modelTypeID == "5":
+        modelType = "xlnet-base-cased"
     else:
-        if action_type == str(2):
-            model_name = input("Model name to test: ")
-            model_path = os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + model_name
-            test_model_dataset(model_path)
+        raise ValueError("The model ID: " + modelTypeID + "you selected does not exist")
+
+    modelName = input("Enter the Model name: ")
+    if modelName == "":
+        modelName = ''.join(choice(ascii_lowercase) for i in range(12))
+
+    modelPath = os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + modelName
+
+    useCuda = input("Use Cuda? (y or n, default n): ")
+    if useCuda == "y":
+        useCuda = True
+    else:
+        useCuda = False
+
+    if actionType == str(1) or actionType == str(2):
+        nIterations = input("Number of iterations (default 10): ")
+        if nIterations == "":
+            nIterations = 10
         else:
-            if action_type == str(3):
-                model = input("Model (1. spaCy; 2.BERT; 3.RoBerta): ")
+            nIterations = int(nIterations)
 
-                if model == "":
-                    model = "2"
+        if actionType == str(1):
+            train(modelType, modelPath, useCuda, nIterations)
+        else:
+            grid_search(modelType, modelPath, useCuda, nIterations)
 
-                if model == "1":
-                    model_name = input("Model name to test: ")
-                    model_path = os.path.dirname(os.path.abspath(__file__)) + '/trained_models/' + model_name
-                    test_model_manually(model_path)
-                elif model == "2":
-                    model_name = input("Model name to test: ")
+    elif actionType == str(3):
+        test_model_dataset(modelPath)
 
-                    if model_name == "":
-                        model_name = "scibert_final"
-                    text = input("Enter your testing text: ")
-                    if text == "":
-                        text = "The authors should correct the typos in the conclusion, those are visible within the conclusion in the lines: 22-28."
-                    predictionResults = prediction(text, model_name)
-                    createDoccannoJSON(text, predictionResults)
+    elif actionType == str(4):
+        text = input("Enter your testing text: ")
+        if text == "":
+            text = "The authors should correct the typos in the conclusion, those are visible within the conclusion in the lines: 22-28."
+        predictionResults = prediction_bert_based_models(text, modelName)
+        createDoccannoJSON(text, predictionResults)
 
+    elif actionType == str(5):
+        file_path = input("HTML file path with review comments: ")
+        if file_path == "":
+            file_path = "/Users/miloscuculovic/Desktop/eval2.html"
 
-                elif model =="3":
-                    model_name=input("Model name to test: ")
-                    text = input("Enter your testing text: ")
-                    print(predictionRoberta(text, model_name))
+        file_object = open('doccano.json', 'a')
+        with open(file_path, 'r') as f:
+            contents = f.read()
+            soup = BeautifulSoup(contents, 'lxml')
+            paragraphs = soup.findAll('p')
 
-            elif action_type == str(5):
-                file_path = input("HTML file path with review comments: ")
-                if file_path == "":
-                    file_path = "/Users/miloscuculovic/Desktop/eval2.html"
+            for paragraph in paragraphs:
+                if paragraph.string is not None:
+                    html2text.html2text.BODY_WIDTH = 0
+                    text = html2text.html2text(paragraph.string)
+                    if len(text) < 10:
+                        continue
+                    text = text.replace("\n", " ")
+                    predictionResults = prediction_bert_based_models(text, modelName)
 
-                model_name = input("Model name to test: ")
-                if model_name == "":
-                    model_name = "scibert_final"
+                    doccano = createDoccannoJSON(text, predictionResults)
+                    if doccano != False:
+                        file_object.write(doccano)
 
-                file_object = open('doccano.json', 'a')
-
-
-                with open(file_path, 'r') as f:
-
-                    contents = f.read()
-                    soup = BeautifulSoup(contents, 'lxml')
-                    paragraphs = soup.findAll('p')
-
-                    for paragraph in paragraphs:
-                        if paragraph.string is not None:
-                            html2text.html2text.BODY_WIDTH = 0
-                            text = html2text.html2text(paragraph.string)
-                            if len(text) < 10:
-                                continue
-                            text = text.replace("\n", " ")
-                            predictionResults = prediction(text, model_name)
-
-                            doccano = createDoccannoJSON(text, predictionResults)
-                            if doccano != False:
-                                file_object.write(doccano)
-
-                file_object.close()
-
-            else:
-                train_model("1", os.path.dirname(os.path.abspath(__file__)) + '/trained_models/1_default', useCuda, spacy_model_type)
+        file_object.close()

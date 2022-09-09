@@ -1,25 +1,18 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Tue May  3 15:33:04 2022
-
 @author: chams
+refactored by Milos - 07.09.2022
 """
 
 import os
-from torch import nn
 import json
 import logging
 import random
 import numpy as np
 import matplotlib.pyplot as plt
-from pytorch_transformers import (AdamW,
-                                  WarmupLinearSchedule)
+from pytorch_transformers import (AdamW,WarmupLinearSchedule)
 from transformers import XLNetTokenizer, XLNetForTokenClassification, XLNetConfig
-
 from transformers import pipeline, AutoModelForTokenClassification
-from transformers import pipeline, AutoModelForTokenClassification
-
 import cf_matrix
 import torch
 from tqdm import tqdm, trange
@@ -29,49 +22,16 @@ from torch.utils.data import DataLoader, TensorDataset, SequentialSampler, Rando
 from torch.utils.data.distributed import DistributedSampler
 from nltk import word_tokenize
 import torch.distributed as dist
-import torch.multiprocessing as mp
-import torch.nn as nn
-import torch.optim as optim
-from torch.nn.parallel import DistributedDataParallel as DDP
 from bertconf import removEsc, sentenceMean, json_conll, trigConll, crossval, changeToOther
 import shutil
-from grid_search_results_print import generate_grid_search_results_print
+from grid_search_results_print import print_3D_graph
 
-
-trigger= ['why', 'on the contrary','what','however','either','while','rather','instead of', 'when','than',
-         'in order to','therefore','not only', 'afterwards','once again','or','in order to','in particular',
-         'also','if not','if not then','and','not only','does','albeit','because','is that','that','without','who',
-         'whether','is it', 'was it','such as','were they','are they','thus','again','given that','given the',
-         'how many','except','nor','both','whose','especialls','for instance','is this','similarly','were there',
-         'are there','is there','for the time being','based on','in particular','as currently','perhaps','once',
-         'how','otherwise','particularly','overall','although','prior to','At the same time',
-         'neither','apart from','besides from','if necessary','hence','how much','by doing so','since','how less'
-         'despite','accordingly','etc','always','what kind','unless','which one','if not','if so','even if',
-         'not just','not only','besides','after all','generally','similar to','too','like']
-
+device = 'cpu'
 labelremove=["CONTENT"]
 lab_list=["O", "B-LOCATION", "I-LOCATION", "B-TRIGGER", "I-TRIGGER",
                 "B-MODAL", "I-MODAL", "B-ACTION", "I-ACTION", "B-CONTENT", "I-CONTENT"]
 
-
-# class XLNetNer(XLNetForTokenClassification):
-
-#     def forward(self, input_ids, token_type_ids=None, attention_mask=None, valid_ids=None):
-#         sequence_output = self.xlnet(input_ids, token_type_ids, attention_mask, head_mask=None)[0]
-#         batch_size,max_len,feat_dim = sequence_output.shape
-#         valid_output = torch.zeros(batch_size,max_len,feat_dim,dtype=torch.float32,device='cuda' if torch.cuda.is_available() else 'cpu')
-#         for i in range(batch_size):
-#             jj = -1
-#             for j in range(max_len):
-#                     if valid_ids[i][j].item() == 1:
-#                         jj += 1
-#                         valid_output[i][jj] = sequence_output[i][j]
-#         sequence_output = self.dropout(valid_output)
-#         logits = self.classifier(sequence_output)
-#         return logits
-
 class Ner:
-
     def __init__(self, model_dir: str):
         self.model, self.tokenizer, self.model_config = self.load_model(model_dir)
         self.label_map = self.model_config["label_map"]
@@ -116,20 +76,7 @@ class Ner:
         return input_ids, input_mask, valid_positions
 
     def predict(self, text: str):
-        input_ids, input_mask = self.preprocess(text)
-        input_ids = torch.tensor([input_ids], dtype=torch.long, device=self.device)
-        input_mask = torch.tensor([input_mask], dtype=torch.long, device=self.device)
-        with torch.no_grad():
-            logits = self.model(input_ids, input_mask)
-        logits = F.softmax(logits, dim=2)
-        logits_label = torch.argmax(logits, dim=2)
-        logits_label = logits_label.detach().cpu().numpy().tolist()[0]
-
-        logits_confidence = [values[label].item() for values, label in zip(logits[0], logits_label)]
-
         logits = []
-        pos = 0
-
         logits.pop()
 
         labels = [(self.label_map[label], confidence) for label, confidence in logits]
@@ -140,10 +87,7 @@ class Ner:
         return output
 
 
-device = 'cpu'
-
-
-def trainxlnetModel(jsonfile, output_dir, nIter, use_cuda):
+def train_xlnet_model(output_dir, nIter, use_cuda):
     learning_rate = 0.00025
     weight_decay = 0.01
     warmup_proportion = 0.1
@@ -176,7 +120,7 @@ def trainxlnetModel(jsonfile, output_dir, nIter, use_cuda):
                weight_decay, warmup_proportion)
 
 
-def trainxlnetGrid(jsonfile, output_dir, nIter, use_cuda):
+def grid_xlnet_model(jsonfile, output_dir, nIter, use_cuda):
     # # INITIAL
     # removEsc(os.path.abspath(jsonfile))
 
@@ -203,7 +147,7 @@ def trainxlnetGrid(jsonfile, output_dir, nIter, use_cuda):
     loopxlnethyperparam(output_dir, int(nIter), use_cuda)
 
 
-def evaluation(output_dir, use_cuda):
+def test_xlnet_model(output_dir, use_cuda):
     trainxlnet(output_dir, 32, False, 1, use_cuda, True, "", 2e-5, 0.01, 0.1)
 
 

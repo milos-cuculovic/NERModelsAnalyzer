@@ -7576,7 +7576,7 @@ color I-LOCATION
 blindness B-LOCATION
 regarding I-LOCATION
 race I-LOCATION
-and B-TRIGGER
+and I-LOCATION
 ethnicity I-LOCATION
 , O
 for B-LOCATION
